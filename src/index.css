@@ -499,6 +499,71 @@ button:active {
 .theme-social-post-dark .social-body .slide-title .highlight { color: #ec4899; }
 
 /* ==================================
+   EXACT REALISTIC PLATFORM MOCKUPS
+================================== */
+/* 1. Perfect LinkedIn Dark Mode Replica */
+.theme-linkedin-real {
+  background: #1d2226 !important; 
+  padding: 50px !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  direction: rtl;
+  color: rgba(255,255,255,0.9);
+  --slide-height: 1080px; 
+}
+.theme-linkedin-real::before, .theme-linkedin-real::after { display: none !important; } /* no glow */
+
+.li-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+.li-user-info { display: flex; gap: 24px; }
+.li-avatar {
+  width: 140px; height: 140px;
+  border-radius: 50%; object-fit: cover;
+  background: #fff; padding: 0px; margin-top: 5px;
+}
+.li-name-container {
+  display: flex; flex-direction: column; gap: 8px; padding-top: 10px;
+}
+.li-name-row { display: flex; align-items: center; gap: 12px; }
+.li-name {
+  font-size: 42px; font-weight: bold; color: #ffffff;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.li-connection {
+  font-size: 38px; color: rgba(255, 255, 255, 0.6); white-space: nowrap;
+}
+.li-job {
+  font-size: 36px; color: rgba(255, 255, 255, 0.6);
+  max-width: 650px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.li-time {
+  font-size: 34px; color: rgba(255, 255, 255, 0.6);
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.li-follow {
+  display: flex; align-items: center; gap: 30px; padding-top: 10px;
+}
+.li-follow-btn {
+  color: #70b5f9; font-size: 42px; font-weight: bold;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.li-menu-dots {
+  color: rgba(255, 255, 255, 0.6); font-size: 50px; line-height: 0.5; letter-spacing: 4px; font-weight: bold;
+}
+.li-body {
+  font-size: 44px; line-height: 1.6; color: rgba(255, 255, 255, 0.9);
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  white-space: pre-wrap; /* important for clean paragraph breaking like linkedin */
+}
+
+/* ==================================
    MOBILE RESPONSIVENESS
 ================================== */
 @media (max-width: 900px) {

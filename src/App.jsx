@@ -148,6 +148,14 @@ export default function App() {
         {/* THEME PICKER */}
         <div className="glass-panel" style={{ marginBottom: '20px' }}>
           <h3 style={{ marginBottom: '10px', color: 'white', fontSize: '14px' }}>🎨 اختر الثيم (القالب البصري)</h3>
+          <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>محاكاة منصات واقعية 100% (نفس اللينكد إن بالضبط)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '10px', marginBottom: '15px' }}>
+            <button 
+              onClick={() => setActiveTheme('theme-linkedin-real')}
+              style={{ padding: '10px', fontSize: '14px', background: activeTheme === 'theme-linkedin-real' ? '#1d2226' : 'rgba(0,0,0,0.4)', border: '1px solid #70b5f9', color: '#70b5f9', fontWeight: 'bold' }}
+            >💼 قالب موقع LinkedIn الواقعي (Dark Mode)</button>
+          </div>
+
           <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>الكلاسيكي المربع (1080x1080)</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '15px' }}>
             <button 
@@ -338,7 +346,32 @@ export default function App() {
                 className={`slide-square ${activeTheme}`} 
                 ref={(el) => (slideRefs.current[index] = el)}
               >
-                {isBrowserTheme ? (
+                {activeTheme === 'theme-linkedin-real' ? (
+                  <>
+                    <div className="li-header">
+                      <div className="li-user-info">
+                        <img src="/logo.png" className="li-avatar" alt="Avatar" />
+                        <div className="li-name-container">
+                          <div className="li-name-row">
+                            <span className="li-name">سيرتك علينا</span>
+                            <span className="li-connection">• من الدرجة الثالثة+</span>
+                          </div>
+                          <div className="li-job">تمكين الفرق والأفراد لتحقيق التميز من خلال حلو...</div>
+                          <div className="li-time">الآن • 🌍</div>
+                        </div>
+                      </div>
+                      <div className="li-follow">
+                        <span className="li-follow-btn">+ متابعة</span>
+                        <span className="li-menu-dots">...</span>
+                      </div>
+                    </div>
+                    <div className="li-body">
+                      {slide.title && <div style={{marginBottom: '30px'}} dangerouslySetInnerHTML={{ __html: slide.title }} />}
+                      {slide.subtitle && <div style={{marginBottom: '30px'}}>{slide.subtitle}</div>}
+                      <div dangerouslySetInnerHTML={{ __html: slide.text }} />
+                    </div>
+                  </>
+                ) : isBrowserTheme ? (
                   <div className="browser-mockup">
                     <div className="browser-header">
                       <div className="macos-dot dot-red"></div>
