@@ -148,19 +148,28 @@ export default function App() {
         {/* THEME PICKER */}
         <div className="glass-panel" style={{ marginBottom: '20px' }}>
           <h3 style={{ marginBottom: '10px', color: 'white', fontSize: '14px' }}>🎨 اختر الثيم (القالب البصري)</h3>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
             <button 
               onClick={() => setActiveTheme('theme-neon')}
               style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-neon' ? 'linear-gradient(135deg, #38bdf8, #818cf8)' : 'rgba(0,0,0,0.4)', border: '1px solid #38bdf8' }}
-            >النيون الأزرق</button>
+            >مربع - نيون أزرق</button>
             <button 
               onClick={() => setActiveTheme('theme-gold')}
               style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-gold' ? 'linear-gradient(135deg, #fbbf24, #d97706)' : 'rgba(0,0,0,0.4)', border: '1px solid #fbbf24' }}
-            >الملكي الذهبي</button>
+            >مربع - ملكي ذهبي</button>
             <button 
               onClick={() => setActiveTheme('theme-purple')}
               style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-purple' ? 'linear-gradient(135deg, #a855f7, #ec4899)' : 'rgba(0,0,0,0.4)', border: '1px solid #a855f7' }}
-            >الأرجواني السري</button>
+            >مربع - أرجواني</button>
+            
+            <button 
+              onClick={() => setActiveTheme('theme-emerald-portrait')}
+              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-emerald-portrait' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(0,0,0,0.4)', border: '1px solid #10b981' }}
+            >طولي - الزمرد (للمصممين)</button>
+            <button 
+              onClick={() => setActiveTheme('theme-crimson-portrait')}
+              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-crimson-portrait' ? 'linear-gradient(135deg, #f43f5e, #be123c)' : 'rgba(0,0,0,0.4)', border: '1px solid #f43f5e' }}
+            >طولي - القرمزي الجريء</button>
           </div>
         </div>
 
@@ -286,9 +295,11 @@ export default function App() {
           </div>
         )}
 
-        {activeTemplate.map((slide, index) => (
+        {activeTemplate.map((slide, index) => {
+          const isPortrait = activeTheme.includes('portrait');
+          return (
           <div className="carousel-slide-wrapper" key={index}>
-            <div className="slide-scale-wrapper">
+            <div className={`slide-scale-wrapper ${isPortrait ? 'portrait-wrapper' : ''}`}>
               <div 
                 className={`slide-square ${activeTheme}`} 
                 ref={(el) => (slideRefs.current[index] = el)}
@@ -326,7 +337,8 @@ export default function App() {
               ⬇️ حفظ هذه الصورة
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -177,7 +177,7 @@ button:active {
 /* TikTok / IG Square Standard */
 .slide-square {
   width: 1080px;
-  height: 1080px; 
+  height: var(--slide-height, 1080px); 
   background: var(--slide-bg);
   color: var(--slide-text-main);
   border: var(--slide-border);
@@ -292,10 +292,55 @@ button:active {
   position: relative;
   margin: 0 auto;
 }
+.portrait-wrapper {
+  height: 540px !important; /* 1350 * 0.4 */
+}
 .slide-scale-wrapper > .slide-square {
   transform: scale(0.4) !important;
   transform-origin: top left !important;
   margin: 0 !important;
+}
+
+/* ==================================
+   NEW PORTRAIT THEMES
+================================== */
+.theme-emerald-portrait {
+  --slide-bg: #022c22;
+  --slide-primary: #34d399;
+  --slide-secondary: #059669;
+  --slide-text-main: #f0fdf4;
+  --slide-text-muted: #a7f3d0;
+  --slide-title-gradient: linear-gradient(135deg, #f0fdf4, #6ee7b7);
+  --slide-footer-bg: rgba(0,0,0,0.6);
+  --slide-glow1: rgba(16, 185, 129, 0.2);
+  --slide-glow2: rgba(5, 150, 105, 0.15);
+  --slide-border: 1px solid rgba(16, 185, 129, 0.3);
+  --slide-height: 1350px;
+}
+.theme-emerald-portrait::before {
+  background: radial-gradient(circle, var(--slide-glow1) 0%, transparent 60%),
+              radial-gradient(rgba(16,185,129,0.1) 2px, transparent 2px) !important;
+  background-size: 100% 100%, 30px 30px !important;
+}
+
+.theme-crimson-portrait {
+  --slide-bg: #4c0519;
+  --slide-primary: #fb7185;
+  --slide-secondary: #e11d48;
+  --slide-text-main: #fff1f2;
+  --slide-text-muted: #fecdd3;
+  --slide-title-gradient: linear-gradient(135deg, #fff1f2, #fda4af);
+  --slide-footer-bg: rgba(0,0,0,0.6);
+  --slide-glow1: rgba(225, 29, 72, 0.25);
+  --slide-glow2: rgba(244, 63, 94, 0.2);
+  --slide-border: 1px solid rgba(225, 29, 72, 0.4);
+  --slide-height: 1350px;
+}
+.theme-crimson-portrait::before {
+  clip-path: polygon(0 0, 100% 0, 100% 40%, 0 80%) !important;
+  background: rgba(225, 29, 72, 0.2) !important;
+  z-index: 0;
+  border-radius: 0 !important;
 }
 
 /* ==================================
@@ -320,6 +365,9 @@ button:active {
     width: 356px;
     height: 356px;
   }
+  .portrait-wrapper {
+    height: 445px !important; /* 1350 * 0.33 */
+  }
   .slide-scale-wrapper > .slide-square {
     transform: scale(0.33) !important;
   }
@@ -329,6 +377,9 @@ button:active {
   .slide-scale-wrapper {
     width: 302px;
     height: 302px;
+  }
+  .portrait-wrapper {
+    height: 378px !important; /* 1350 * 0.28 */
   }
   .slide-scale-wrapper > .slide-square {
     transform: scale(0.28) !important;
