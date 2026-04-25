@@ -344,6 +344,138 @@ button:active {
 }
 
 /* ==================================
+   NEW VISUAL GRAPHIC MOCKUPS
+================================== */
+/* 1. Browser Mockup Theme */
+.theme-visual-browser {
+  background: conic-gradient(from 180deg at 50% 50%, #2a8af6 0deg, #a853ba 180deg, #e92a67 360deg);
+  --slide-height: 1350px;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  padding: 40px !important;
+}
+.browser-mockup {
+  width: 100%;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.browser-header {
+  height: 80px;
+  background: #f1f5f9;
+  border-bottom: 3px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  gap: 15px;
+  direction: ltr;
+}
+.macos-dot { width: 22px; height: 22px; border-radius: 50%; }
+.dot-red { background: #ef4444; }
+.dot-yellow { background: #f59e0b; }
+.dot-green { background: #10b981; }
+.browser-url {
+  flex: 1;
+  text-align: center;
+  background: #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0 40px;
+  color: #64748b;
+  font-family: monospace;
+  font-size: 24px;
+  letter-spacing: 1px;
+}
+.browser-body {
+  padding: 80px;
+  direction: rtl;
+  text-align: right;
+  height: 100%;
+}
+.browser-body .slide-title { color: #0f172a; font-size: 80px; margin-bottom: 50px; }
+.browser-body .slide-subtitle { color: #8b5cf6; font-size: 55px; }
+.browser-body .slide-text { color: #334155; font-size: 45px; font-weight: 500; }
+.browser-body .slide-title .highlight { border-bottom: 15px solid rgba(233, 42, 103, 0.3); color: #e92a67; }
+
+/* 2. Social Media Expert Mockup Theme */
+.theme-social-post {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --slide-height: 1350px;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  padding: 40px !important;
+}
+.theme-social-post::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.1) 3px, transparent 3px) !important;
+  background-size: 50px 50px !important;
+}
+.social-mockup {
+  width: 100%;
+  max-height: 90%;
+  background: #ffffff;
+  border-radius: 40px;
+  padding: 80px;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+  position: relative;
+  z-index: 2;
+  direction: rtl;
+  border-right: 20px solid #3b82f6; /* right border for RTL */
+}
+.social-header {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 60px;
+}
+.social-avatar {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 65px;
+  box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4);
+}
+.social-author-name {
+  font-size: 48px;
+  font-weight: 900;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.social-author-handle {
+  font-size: 32px;
+  color: #64748b;
+  margin-top: 10px;
+}
+.social-body .slide-title { font-size: 70px; color: #0f172a; line-height: 1.4; margin-bottom: 40px; }
+.social-body .slide-subtitle { color: #3b82f6; font-size: 50px; font-weight: 800; margin-bottom: 30px; }
+.social-body .slide-text { font-size: 46px; color: #334155; font-weight: 500; }
+.social-body .slide-title .highlight { color: #3b82f6; }
+.social-stats {
+  display: flex;
+  gap: 60px;
+  margin-top: 70px;
+  border-top: 3px solid #f1f5f9;
+  padding-top: 40px;
+  color: #64748b;
+  font-size: 38px;
+  font-weight: bold;
+}
+.social-stats span { display: flex; align-items: center; gap: 15px; }
+
+/* ==================================
    MOBILE RESPONSIVENESS
 ================================== */
 @media (max-width: 900px) {

@@ -165,11 +165,20 @@ export default function App() {
             <button 
               onClick={() => setActiveTheme('theme-emerald-portrait')}
               style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-emerald-portrait' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(0,0,0,0.4)', border: '1px solid #10b981' }}
-            >طولي - الزمرد (للمصممين)</button>
+            >الزمردي الكلاسيكي</button>
             <button 
               onClick={() => setActiveTheme('theme-crimson-portrait')}
               style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-crimson-portrait' ? 'linear-gradient(135deg, #f43f5e, #be123c)' : 'rgba(0,0,0,0.4)', border: '1px solid #f43f5e' }}
-            >طولي - القرمزي الجريء</button>
+            >القرمزي الطولي</button>
+            
+            <button 
+              onClick={() => setActiveTheme('theme-visual-browser')}
+              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-visual-browser' ? 'linear-gradient(135deg, #e879f9, #c026d3)' : 'rgba(0,0,0,0.4)', border: '1px solid #e879f9', gridColumn: 'span 2' }}
+            >💻 تصميم بصري (نافذة متصفح)</button>
+            <button 
+              onClick={() => setActiveTheme('theme-social-post')}
+              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-social-post' ? 'linear-gradient(135deg, #60a5fa, #2563eb)' : 'rgba(0,0,0,0.4)', border: '1px solid #60a5fa', gridColumn: 'span 2' }}
+            >📱 تغريدة خبير (بطاقة سوشل)</button>
           </div>
         </div>
 
@@ -304,29 +313,58 @@ export default function App() {
                 className={`slide-square ${activeTheme}`} 
                 ref={(el) => (slideRefs.current[index] = el)}
               >
-                <div className="slide-content">
-                  {slide.title && (
-                    <div 
-                      className="slide-title" 
-                      dangerouslySetInnerHTML={{ __html: slide.title }} 
-                    />
-                  )}
-                  
-                  {slide.subtitle && (
-                    <div className="slide-subtitle">{slide.subtitle}</div>
-                  )}
-                  
-                  <div className="slide-text" dangerouslySetInnerHTML={{ __html: slide.text }} />
-                </div>
-                
-                <div className="slide-footer">
-                  <div className="logo-stamp">
-                    سيرتك <span>علينا</span>
+                {activeTheme === 'theme-visual-browser' ? (
+                  <div className="browser-mockup">
+                    <div className="browser-header">
+                      <div className="macos-dot dot-red"></div>
+                      <div className="macos-dot dot-yellow"></div>
+                      <div className="macos-dot dot-green"></div>
+                      <div className="browser-url">seartk3.com/grow</div>
+                    </div>
+                    <div className="browser-body">
+                      {slide.title && <div className="slide-title" dangerouslySetInnerHTML={{ __html: slide.title }} />}
+                      {slide.subtitle && <div className="slide-subtitle">{slide.subtitle}</div>}
+                      <div className="slide-text" dangerouslySetInnerHTML={{ __html: slide.text }} />
+                    </div>
                   </div>
-                  <div className="slide-counter" dir="ltr">
-                    {index + 1} / {activeTemplate.length}
+                ) : activeTheme === 'theme-social-post' ? (
+                  <div className="social-mockup">
+                    <div className="social-header">
+                      <div className="social-avatar">💼</div>
+                      <div>
+                        <div className="social-author-name">سيرتك علينا <span style={{color: '#3b82f6'}}>✔️</span></div>
+                        <div className="social-author-handle">@seartk3</div>
+                      </div>
+                    </div>
+                    <div className="social-body">
+                      {slide.title && <div className="slide-title" dangerouslySetInnerHTML={{ __html: slide.title }} />}
+                      {slide.subtitle && <div className="slide-subtitle">{slide.subtitle}</div>}
+                      <div className="slide-text" dangerouslySetInnerHTML={{ __html: slide.text }} />
+                    </div>
+                    <div className="social-stats">
+                      <span>❤️ 12.4K</span>
+                      <span>🔁 3.1K</span>
+                      <span>💬 {Math.floor(Math.random() * 500) + 100}</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="slide-content">
+                      {slide.title && <div className="slide-title" dangerouslySetInnerHTML={{ __html: slide.title }} />}
+                      {slide.subtitle && <div className="slide-subtitle">{slide.subtitle}</div>}
+                      <div className="slide-text" dangerouslySetInnerHTML={{ __html: slide.text }} />
+                    </div>
+                    
+                    <div className="slide-footer">
+                      <div className="logo-stamp">
+                        سيرتك <span>علينا</span>
+                      </div>
+                      <div className="slide-counter" dir="ltr">
+                        {index + 1} / {activeTemplate.length}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             {/* Direct Mobile Download Button */}
