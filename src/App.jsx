@@ -288,38 +288,40 @@ export default function App() {
 
         {activeTemplate.map((slide, index) => (
           <div className="carousel-slide-wrapper" key={index}>
-            <div 
-              className={`slide-square ${activeTheme}`} 
-              ref={(el) => (slideRefs.current[index] = el)}
-            >
-              <div className="slide-content">
-                {slide.title && (
-                  <div 
-                    className="slide-title" 
-                    dangerouslySetInnerHTML={{ __html: slide.title }} 
-                  />
-                )}
-                
-                {slide.subtitle && (
-                  <div className="slide-subtitle">{slide.subtitle}</div>
-                )}
-                
-                <div className="slide-text">{slide.text}</div>
-              </div>
-              
-              <div className="slide-footer">
-                <div className="logo-stamp">
-                  سيرتك <span>علينا</span>
+            <div className="slide-scale-wrapper">
+              <div 
+                className={`slide-square ${activeTheme}`} 
+                ref={(el) => (slideRefs.current[index] = el)}
+              >
+                <div className="slide-content">
+                  {slide.title && (
+                    <div 
+                      className="slide-title" 
+                      dangerouslySetInnerHTML={{ __html: slide.title }} 
+                    />
+                  )}
+                  
+                  {slide.subtitle && (
+                    <div className="slide-subtitle">{slide.subtitle}</div>
+                  )}
+                  
+                  <div className="slide-text" dangerouslySetInnerHTML={{ __html: slide.text }} />
                 </div>
-                <div className="slide-counter" dir="ltr">
-                  {index + 1} / {activeTemplate.length}
+                
+                <div className="slide-footer">
+                  <div className="logo-stamp">
+                    سيرتك <span>علينا</span>
+                  </div>
+                  <div className="slide-counter" dir="ltr">
+                    {index + 1} / {activeTemplate.length}
+                  </div>
                 </div>
               </div>
             </div>
             {/* Direct Mobile Download Button */}
             <button 
               onClick={() => handleDownloadSingle(index)} 
-              style={{ marginTop: '-600px', width: '200px', padding: '10px', fontSize: '14px', background: 'rgba(16, 185, 129, 0.9)', zIndex: 10, position: 'relative' }}
+              style={{ width: '200px', padding: '12px', fontSize: '15px', background: 'rgba(16, 185, 129, 0.9)', zIndex: 10, marginTop: '20px', borderRadius: '12px', color: 'white', fontWeight: 'bold', border: 'none' }}
             >
               ⬇️ حفظ هذه الصورة
             </button>

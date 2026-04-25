@@ -185,9 +185,6 @@ button:active {
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   direction: rtl;
-  transform: scale(0.4);
-  transform-origin: top center;
-  margin-bottom: -620px; 
   border-radius: 8px;
   transition: all 0.3s ease;
 }
@@ -289,6 +286,18 @@ button:active {
   border-radius: 40px;
 }
 
+.slide-scale-wrapper {
+  width: 432px;
+  height: 432px;
+  position: relative;
+  margin: 0 auto;
+}
+.slide-scale-wrapper > .slide-square {
+  transform: scale(0.4) !important;
+  transform-origin: top left !important;
+  margin: 0 !important;
+}
+
 /* ==================================
    MOBILE RESPONSIVENESS
 ================================== */
@@ -307,15 +316,21 @@ button:active {
   .preview-area {
     padding: 1rem 0;
   }
-  .slide-square {
+  .slide-scale-wrapper {
+    width: 356px;
+    height: 356px;
+  }
+  .slide-scale-wrapper > .slide-square {
     transform: scale(0.33) !important;
-    margin-bottom: -720px !important;
   }
 }
 
 @media (max-width: 400px) {
-  .slide-square {
+  .slide-scale-wrapper {
+    width: 302px;
+    height: 302px;
+  }
+  .slide-scale-wrapper > .slide-square {
     transform: scale(0.28) !important;
-    margin-bottom: -770px !important;
   }
 }
