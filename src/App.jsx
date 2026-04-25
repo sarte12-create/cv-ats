@@ -35,6 +35,7 @@ export default function App() {
   const [loadingMsg, setLoadingMsg] = useState("");
   const [activeTheme, setActiveTheme] = useState("theme-neon");
   const [postCaption, setPostCaption] = useState("");
+  const [slideCount, setSlideCount] = useState(5);
   const slideRefs = useRef([]);
 
   // Fetch 3 creative ideas on mount
@@ -71,10 +72,10 @@ export default function App() {
     try {
       const prompt = `أنت صانع محتوى لمنصة تيك توك في السعودية.
       موضوع الكاروسيل هو: "${topic}"
-      اكتب 4 شرائح باللغة العربية (لهجة بيضاء احترافية).
+      اكتب بالضبط (${slideCount}) شرائح باللغة العربية (لهجة بيضاء احترافية).
       - شريحة 1: خطاف قوي.
-      - المقاطع الوسطى: أخطاء الـ ATS.
-      - الشريحة الأخيرة: الحل (دعوة المشاهدين للتواصل معك شخصياً عبر الخاص بالرسائل أو الرابط في البايو لطلب خدمة تصميم سيرة ذاتية مميزة وضبط حساب اللينكد إن.. لا تجب طارئ أي بوت آلي نهائياً).
+      - المقاطع الوسطى: اسرد المحتوى القيم المرتبط بالموضوع بشكل تسلسلي ومترابط (التركيز على موضوع البوست نفسه وحلوله وميزاته، لا تحصره فقط بأخطاء الـ ATS إلا إذا كان الموضوع يتطلب ذلك صراحة).
+      - الشريحة الأخيرة: الحل والخاتمة (دعوة للمشاهدين للتواصل معك شخصياً عبر رسائل الخاص أو زيارة الرابط في البايو لطلب خدمة تصميم سيرة ذاتية مميزة وضبط اللينكد إن الخاص بهم).
       مهم: يمكنك وضع الايموجي بشكل طبيعي. استخدم <span class='highlight'>الأرقام والكلمات المهمة</span> في العنوان للإضاءة.
       
       يجب أن ترد بمصفوفة JSON فقط بالشكل التالي تماماً، ولا تكتب أي شيء آخر ولا تضع علامات formatting:
@@ -106,25 +107,31 @@ export default function App() {
   const handleDownloadAll = async () => {
     if (slideRefs.current.length === 0) return;
     
+    // Note: Mobile browsers often block multiple programmatic downloads in a single click. 
+    // Best effort loop:
     for (let i = 0; i < activeTemplate.length; i++) {
-      const el = slideRefs.current[i];
-      if (el) {
-        try {
-          const dataUrl = await htmlToImage.toPng(el, { 
-            quality: 1, 
-            pixelRatio: 2,
-            cacheBust: true,
-            style: { transform: 'scale(1)', transformOrigin: 'top left' } // force clean scale
-          });
-          
-          const a = document.createElement('a');
-          a.href = dataUrl;
-          a.download = `slide-${i + 1}.png`;
-          a.click();
-          await new Promise(r => setTimeout(r, 600));
-        } catch (error) {
-          console.error("Error generating image", error);
-        }
+        await handleDownloadSingle(i);
+        await new Promise(r => setTimeout(r, 600));
+    }
+  };
+
+  const handleDownloadSingle = async (index) => {
+    const el = slideRefs.current[index];
+    if (el) {
+      try {
+        const dataUrl = await htmlToImage.toPng(el, { 
+          quality: 1, 
+          pixelRatio: 2,
+          cacheBust: true,
+          style: { transform: 'scale(1)', transformOrigin: 'top left' } // force clean scale
+        });
+        
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `slide-${index + 1}.png`;
+        a.click();
+      } catch (error) {
+        console.error("Error generating image", error);
       }
     }
   };
@@ -176,13 +183,15 @@ export default function App() {
             <div key={idx} style={{ marginBottom: '10px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
               <div style={{ fontWeight: 'bold', color: 'var(--secondary-color)', marginBottom: '5px' }}>{idea.title}</div>
               <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '10px' }}>{idea.description}</div>
-              <button 
-                className="secondary" 
-                onClick={() => generateCarousel(idea.title)}
-                style={{ padding: '8px', fontSize: '13px', marginTop: '0' }}
-              >
-                ✨ صمم هذا الكاروسيل
-              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  className="secondary" 
+                  onClick={() => generateCarousel(idea.title)}
+                  style={{ padding: '8px', fontSize: '13px', marginTop: '0', flex: 1 }}
+                >
+                  ✨ صمم هذا الكاروسيل
+                </button>
+              </div>
             </div>
           ))}
 
@@ -197,11 +206,23 @@ export default function App() {
               onChange={(e) => setCustomIdea(e.target.value)}
             />
           </div>
+
+          <div className="input-group" style={{ marginBottom: '15px' }}>
+            <label>عدد شرائح الكاروسيل (بما فيها البداية والنهاية)</label>
+            <input 
+              type="number" 
+              min="3" max="10"
+              value={slideCount}
+              onChange={(e) => setSlideCount(parseInt(e.target.value) || 5)}
+              style={{ width: '100px' }}
+            />
+          </div>
+
           <button 
             onClick={() => generateCarousel(customIdea)} 
             disabled={!customIdea || loading}
           >
-            🚀 توليد لفكرتي
+            🚀 توليد الكاروسيل
           </button>
         </div>
 
@@ -295,6 +316,13 @@ export default function App() {
                 </div>
               </div>
             </div>
+            {/* Direct Mobile Download Button */}
+            <button 
+              onClick={() => handleDownloadSingle(index)} 
+              style={{ marginTop: '-600px', width: '200px', padding: '10px', fontSize: '14px', background: 'rgba(16, 185, 129, 0.9)', zIndex: 10, position: 'relative' }}
+            >
+              ⬇️ حفظ هذه الصورة
+            </button>
           </div>
         ))}
       </div>
