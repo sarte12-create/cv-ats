@@ -346,15 +346,16 @@ button:active {
 /* ==================================
    NEW VISUAL GRAPHIC MOCKUPS
 ================================== */
-/* 1. Browser Mockup Theme */
-.theme-visual-browser {
-  background: conic-gradient(from 180deg at 50% 50%, #2a8af6 0deg, #a853ba 180deg, #e92a67 360deg);
+/* 1. Browser Mockup Themes */
+.theme-visual-browser-light, .theme-visual-browser-dark {
   --slide-height: 1350px;
   display: flex !important;
   justify-content: center;
   align-items: center;
   padding: 40px !important;
 }
+.theme-visual-browser-light { background: conic-gradient(from 180deg at 50% 50%, #2a8af6 0deg, #a853ba 180deg, #e92a67 360deg); }
+.theme-visual-browser-dark { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); }
 .browser-mockup {
   width: 100%;
   border-radius: 30px;
@@ -401,22 +402,35 @@ button:active {
 .browser-body .slide-text { color: #334155; font-size: 45px; font-weight: 500; }
 .browser-body .slide-title .highlight { border-bottom: 15px solid rgba(233, 42, 103, 0.3); color: #e92a67; }
 
-/* 2. Social Media Expert Mockup Theme */
-.theme-social-post {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+/* Dark Mode Browser Context Overrides */
+.theme-visual-browser-dark .browser-mockup { background: rgba(15, 23, 42, 0.95); box-shadow: 0 40px 100px rgba(0,0,0,0.8); }
+.theme-visual-browser-dark .browser-header { background: #1e293b; border-bottom: 3px solid #334155; }
+.theme-visual-browser-dark .browser-url { background: #334155; color: #94a3b8; }
+.theme-visual-browser-dark .browser-body .slide-title { color: #f8fafc; }
+.theme-visual-browser-dark .browser-body .slide-subtitle { color: #38bdf8; }
+.theme-visual-browser-dark .browser-body .slide-text { color: #cbd5e1; }
+.theme-visual-browser-dark .browser-body .slide-title .highlight { border-color: rgba(56, 189, 248, 0.3); color: #38bdf8; }
+
+/* 2. Social Media Expert Mockup Themes */
+.theme-social-post-light, .theme-social-post-dark {
   --slide-height: 1350px;
   display: flex !important;
   justify-content: center;
   align-items: center;
   padding: 40px !important;
 }
-.theme-social-post::before {
+
+.theme-social-post-light { background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); }
+.theme-social-post-dark { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+
+.theme-social-post-light::before, .theme-social-post-dark::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-image: radial-gradient(rgba(255,255,255,0.1) 3px, transparent 3px) !important;
+  background-image: radial-gradient(rgba(0,0,0,0.05) 3px, transparent 3px) !important;
   background-size: 50px 50px !important;
 }
+.theme-social-post-dark::before { background-image: radial-gradient(rgba(255,255,255,0.1) 3px, transparent 3px) !important; }
 .social-mockup {
   width: 100%;
   max-height: 90%;
@@ -474,6 +488,15 @@ button:active {
   font-weight: bold;
 }
 .social-stats span { display: flex; align-items: center; gap: 15px; }
+
+/* Dark Mode Social Context Overrides */
+.theme-social-post-dark .social-mockup { background: #1e293b; box-shadow: 0 40px 80px rgba(0,0,0,0.8); border-right-color: #ec4899; }
+.theme-social-post-dark .social-author-name { color: #f8fafc; }
+.theme-social-post-dark .social-stats { border-top-color: #334155; color: #94a3b8; }
+.theme-social-post-dark .social-body .slide-title { color: #f8fafc; }
+.theme-social-post-dark .social-body .slide-subtitle { color: #ec4899; }
+.theme-social-post-dark .social-body .slide-text { color: #cbd5e1; }
+.theme-social-post-dark .social-body .slide-title .highlight { color: #ec4899; }
 
 /* ==================================
    MOBILE RESPONSIVENESS

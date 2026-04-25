@@ -148,37 +148,52 @@ export default function App() {
         {/* THEME PICKER */}
         <div className="glass-panel" style={{ marginBottom: '20px' }}>
           <h3 style={{ marginBottom: '10px', color: 'white', fontSize: '14px' }}>🎨 اختر الثيم (القالب البصري)</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+          <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>الكلاسيكي المربع (1080x1080)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '15px' }}>
             <button 
               onClick={() => setActiveTheme('theme-neon')}
-              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-neon' ? 'linear-gradient(135deg, #38bdf8, #818cf8)' : 'rgba(0,0,0,0.4)', border: '1px solid #38bdf8' }}
-            >مربع - نيون أزرق</button>
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-neon' ? 'linear-gradient(135deg, #38bdf8, #818cf8)' : 'rgba(0,0,0,0.4)', border: '1px solid #38bdf8' }}
+            >النيون الأزرق</button>
             <button 
               onClick={() => setActiveTheme('theme-gold')}
-              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-gold' ? 'linear-gradient(135deg, #fbbf24, #d97706)' : 'rgba(0,0,0,0.4)', border: '1px solid #fbbf24' }}
-            >مربع - ملكي ذهبي</button>
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-gold' ? 'linear-gradient(135deg, #fbbf24, #d97706)' : 'rgba(0,0,0,0.4)', border: '1px solid #fbbf24' }}
+            >الملكي الذهبي</button>
             <button 
               onClick={() => setActiveTheme('theme-purple')}
-              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-purple' ? 'linear-gradient(135deg, #a855f7, #ec4899)' : 'rgba(0,0,0,0.4)', border: '1px solid #a855f7' }}
-            >مربع - أرجواني</button>
-            
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-purple' ? 'linear-gradient(135deg, #a855f7, #ec4899)' : 'rgba(0,0,0,0.4)', border: '1px solid #a855f7' }}
+            >أرجواني سري</button>
+          </div>
+
+          <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>التصميم الطولي (1080x1350)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '15px' }}>
             <button 
               onClick={() => setActiveTheme('theme-emerald-portrait')}
-              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-emerald-portrait' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(0,0,0,0.4)', border: '1px solid #10b981' }}
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-emerald-portrait' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(0,0,0,0.4)', border: '1px solid #10b981' }}
             >الزمردي الكلاسيكي</button>
             <button 
               onClick={() => setActiveTheme('theme-crimson-portrait')}
-              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-crimson-portrait' ? 'linear-gradient(135deg, #f43f5e, #be123c)' : 'rgba(0,0,0,0.4)', border: '1px solid #f43f5e' }}
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-crimson-portrait' ? 'linear-gradient(135deg, #f43f5e, #be123c)' : 'rgba(0,0,0,0.4)', border: '1px solid #f43f5e' }}
             >القرمزي الطولي</button>
+          </div>
             
+          <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>قوالب الموك-أب (شكل فوتوشوب حقيقي)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
             <button 
-              onClick={() => setActiveTheme('theme-visual-browser')}
-              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-visual-browser' ? 'linear-gradient(135deg, #e879f9, #c026d3)' : 'rgba(0,0,0,0.4)', border: '1px solid #e879f9', gridColumn: 'span 2' }}
-            >💻 تصميم بصري (نافذة متصفح)</button>
+              onClick={() => setActiveTheme('theme-visual-browser-light')}
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-visual-browser-light' ? 'linear-gradient(135deg, #e879f9, #c026d3)' : 'rgba(0,0,0,0.4)', border: '1px solid #e879f9' }}
+            >💻 متصفح (نهاري)</button>
             <button 
-              onClick={() => setActiveTheme('theme-social-post')}
-              style={{ padding: '8px', fontSize: '12px', background: activeTheme === 'theme-social-post' ? 'linear-gradient(135deg, #60a5fa, #2563eb)' : 'rgba(0,0,0,0.4)', border: '1px solid #60a5fa', gridColumn: 'span 2' }}
-            >📱 تغريدة خبير (بطاقة سوشل)</button>
+              onClick={() => setActiveTheme('theme-visual-browser-dark')}
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-visual-browser-dark' ? 'linear-gradient(135deg, #e879f9, #c026d3)' : 'rgba(0,0,0,0.4)', border: '1px solid #e879f9' }}
+            >💻 متصفح (ليلي)</button>
+            <button 
+              onClick={() => setActiveTheme('theme-social-post-light')}
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-social-post-light' ? 'linear-gradient(135deg, #60a5fa, #2563eb)' : 'rgba(0,0,0,0.4)', border: '1px solid #60a5fa' }}
+            >📱 تغريدة خبير (نهاري)</button>
+            <button 
+              onClick={() => setActiveTheme('theme-social-post-dark')}
+              style={{ padding: '8px', fontSize: '11px', background: activeTheme === 'theme-social-post-dark' ? 'linear-gradient(135deg, #60a5fa, #2563eb)' : 'rgba(0,0,0,0.4)', border: '1px solid #60a5fa' }}
+            >📱 تغريدة خبير (ليلي)</button>
           </div>
         </div>
 
@@ -306,6 +321,16 @@ export default function App() {
 
         {activeTemplate.map((slide, index) => {
           const isPortrait = activeTheme.includes('portrait');
+          const isBrowserTheme = activeTheme.startsWith('theme-visual-browser');
+          const isSocialTheme = activeTheme.startsWith('theme-social-post');
+          
+          // Seeded stats logic to make each card perfectly distinctive but realistic
+          const stats = {
+            likes: [12.4, 11.2, 9.8, 14.1, 10.5, 8.2, 15.3, 11.9, 9.1, 13.4],
+            retweets: [3.1, 2.8, 1.4, 4.2, 2.1, 1.9, 3.5, 2.6, 1.8, 3.2],
+            comments: [850, 620, 410, 930, 540, 310, 890, 670, 480, 750]
+          };
+
           return (
           <div className="carousel-slide-wrapper" key={index}>
             <div className={`slide-scale-wrapper ${isPortrait ? 'portrait-wrapper' : ''}`}>
@@ -313,7 +338,7 @@ export default function App() {
                 className={`slide-square ${activeTheme}`} 
                 ref={(el) => (slideRefs.current[index] = el)}
               >
-                {activeTheme === 'theme-visual-browser' ? (
+                {isBrowserTheme ? (
                   <div className="browser-mockup">
                     <div className="browser-header">
                       <div className="macos-dot dot-red"></div>
@@ -327,10 +352,12 @@ export default function App() {
                       <div className="slide-text" dangerouslySetInnerHTML={{ __html: slide.text }} />
                     </div>
                   </div>
-                ) : activeTheme === 'theme-social-post' ? (
+                ) : isSocialTheme ? (
                   <div className="social-mockup">
                     <div className="social-header">
-                      <div className="social-avatar">💼</div>
+                      <div className="social-avatar">
+                        <img src="/logo.png" alt="CV" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                      </div>
                       <div>
                         <div className="social-author-name">سيرتك علينا <span style={{color: '#3b82f6'}}>✔️</span></div>
                         <div className="social-author-handle">@seartk3</div>
@@ -342,9 +369,9 @@ export default function App() {
                       <div className="slide-text" dangerouslySetInnerHTML={{ __html: slide.text }} />
                     </div>
                     <div className="social-stats">
-                      <span>❤️ 12.4K</span>
-                      <span>🔁 3.1K</span>
-                      <span>💬 {Math.floor(Math.random() * 500) + 100}</span>
+                      <span>❤️ {stats.likes[index % 10]}K</span>
+                      <span>🔁 {stats.retweets[index % 10]}K</span>
+                      <span>💬 {stats.comments[index % 10]}</span>
                     </div>
                   </div>
                 ) : (
