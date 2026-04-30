@@ -139,10 +139,14 @@ export default function App() {
   };
 
   const fetchAudio = async (text) => {
+    // Strip all emojis and weird symbols before sending to TTS to prevent phonetic reading
+    const cleanText = text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+    if (!cleanText) return null; // Skip empty lines after stripping
+    
     const response = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text: cleanText })
     });
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -166,7 +170,12 @@ export default function App() {
         const audioUrls = [];
         for (let i = 0; i < videoScript.length; i++) {
              const url = await fetchAudio(videoScript[i]);
-             audioUrls.push(url);
+             if (url) {
+                 audioUrls.push(url);
+             } else {
+                 // Fallback for lines that are ONLY emojis
+                 audioUrls.push(null);
+             }
         }
         setLoading(false);
         setIsPlaying(true);
@@ -178,6 +187,12 @@ export default function App() {
                 return;
             }
             setCurrentLine(index);
+            
+            if (!audioUrls[index]) {
+                setTimeout(() => playNext(index + 1), 600);
+                return;
+            }
+
             const audio = new Audio(audioUrls[index]);
             audioRef.current = audio;
             audio.onended = () => playNext(index + 1);
