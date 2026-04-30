@@ -15,8 +15,8 @@ const executeWithFallback = async (promptMsg) => {
   for (let i = 0; i < API_KEYS.length; i++) {
     try {
       const genAI = new GoogleGenerativeAI(API_KEYS[i].trim());
-      // Upgraded to gemini-2.0-flash (1500 limit) since gemini-1.5 is sunset (404)
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      // Reverted to gemini-2.5-flash which has active quota for this tier
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const result = await model.generateContent(promptMsg);
       return result; // Success! Return immediately.
     } catch (e) {
