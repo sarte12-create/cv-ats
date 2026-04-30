@@ -138,22 +138,33 @@ export default function App() {
     setLoading(false);
   };
 
-  const fetchAudio = async (text) => {
+  const fetchAudioWithFallback = async (text) => {
     // Strip all emojis and weird symbols before sending to TTS to prevent phonetic reading
     const cleanText = text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
     if (!cleanText) return null; // Skip empty lines after stripping
     
-    const response = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: cleanText })
-    });
-    if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error || "فشل توليد الصوت المجاني من جوجل");
+    let lastError = null;
+    if (API_KEYS.length === 0) throw new Error("لا توجد مفاتيح محفوظة في النظام!");
+    
+    for (let i = 0; i < API_KEYS.length; i++) {
+        try {
+            const response = await fetch("/api/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: cleanText, apiKey: API_KEYS[i].trim() })
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err?.error || "فشل توليد الصوت");
+            }
+            const blob = await response.blob();
+            return URL.createObjectURL(blob);
+        } catch (e) {
+            console.warn(`Gemini TTS Key ${i+1} failed.`, e.message);
+            lastError = e;
+        }
     }
-    const blob = await response.blob();
-    return URL.createObjectURL(blob);
+    throw new Error(`جميع مفاتيح Gemini فشلت: ${lastError?.message}`);
   }
 
   const playVideo = async () => {
@@ -163,13 +174,13 @@ export default function App() {
         audioRef.current.pause();
     }
     
-    setLoadingMsg("جاري توليد صوت جوجل المجاني...");
+    setLoadingMsg("جاري توليد الصوت الذكي مجاناً عبر (Gemini Flash 3.1)...");
     setLoading(true);
     
     try {
         const audioUrls = [];
         for (let i = 0; i < videoScript.length; i++) {
-             const url = await fetchAudio(videoScript[i]);
+             const url = await fetchAudioWithFallback(videoScript[i]);
              if (url) {
                  audioUrls.push(url);
              } else {
@@ -416,7 +427,7 @@ export default function App() {
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
                   <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
-                    {isPlaying ? "🎙️ قيد التشغيل..." : "▶️ تشغيل صوت جوجل (مجاني تماماً)"}
+                    {isPlaying ? "🎙️ قيد التشغيل..." : "▶️ تشغيل الصوت البشري (Gemini TTS)"}
                   </button>
                   {isPlaying && <button onClick={stopVideo} style={{ padding: '12px', background: '#dc2626', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>⏹️ إيقاف</button>}
                 </div>
