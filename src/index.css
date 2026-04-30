@@ -564,6 +564,98 @@ button:active {
 }
 
 /* ==================================
+   VIDEO FACTORY MOCKUP
+================================== */
+.video-canvas-mockup {
+  width: 400px;
+  height: 711px; /* ~9:16 ratio */
+  background: linear-gradient(180deg, rgba(15,23,42,1) 0%, rgba(2,6,23,1) 100%);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  border: 2px solid rgba(255,255,255,0.1);
+  direction: rtl;
+}
+
+.video-canvas-mockup::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(233, 42, 103, 0.1) 0%, transparent 70%);
+  animation: pulse-bg 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-bg {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.2); opacity: 1; }
+}
+
+.video-content-wrapper {
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.video-text-line {
+  font-size: 32px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.3);
+  text-align: center;
+  line-height: 1.4;
+  transition: all 0.3s ease;
+  transform: scale(0.9);
+  text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.video-text-line.active-line {
+  color: #fff;
+  transform: scale(1.1);
+  text-shadow: 0 0 20px rgba(233, 42, 103, 0.8), 0 0 10px rgba(255,255,255,0.5);
+}
+
+.video-text-line.past-line {
+  color: rgba(255,255,255,0.1);
+  transform: scale(0.85);
+  filter: blur(1px);
+}
+
+.video-bottom-overlay {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-user-details {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  font-size: 18px;
+  color: white;
+}
+
+.video-sound {
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==================================
    MOBILE RESPONSIVENESS
 ================================== */
 @media (max-width: 900px) {
