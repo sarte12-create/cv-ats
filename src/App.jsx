@@ -139,9 +139,8 @@ export default function App() {
   };
 
   const fetchAudioWithFallback = async (text) => {
-    // Strip all emojis and weird symbols before sending to TTS to prevent phonetic reading
     const cleanText = text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
-    if (!cleanText) return null; // Skip empty lines after stripping
+    if (!cleanText) return null; 
     
     let lastError = null;
     if (API_KEYS.length === 0) throw new Error("لا توجد مفاتيح محفوظة في النظام!");
@@ -153,9 +152,22 @@ export default function App() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text: cleanText, apiKey: API_KEYS[i].trim() })
             });
+            
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
-                throw new Error(err?.error || "فشل توليد الصوت");
+                const errMsg = err?.error || "فشل توليد الصوت";
+                
+                const retryMatch = errMsg.match(/retry in ([\d\.]+)s/i);
+                if (retryMatch) {
+                    const waitSeconds = parseFloat(retryMatch[1]) + 1;
+                    setLoadingMsg(`جوجل تطلب الانتظار ${Math.round(waitSeconds)} ثانية (حماية الضغط).. جاري الانتظار ⏳`);
+                    await new Promise(r => setTimeout(r, waitSeconds * 1000));
+                    setLoadingMsg("جاري استئناف توليد الصوت الذكي...");
+                    i--; // Retry the same key
+                    continue;
+                }
+                
+                throw new Error(errMsg);
             }
             const blob = await response.blob();
             return URL.createObjectURL(blob);
