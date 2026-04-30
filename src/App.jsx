@@ -185,44 +185,29 @@ export default function App() {
         return;
     }
 
-    if (audioRef.current) {
-        audioRef.current.pause();
-    }
-    
-    setLoadingMsg("جاري توليد الصوت الذكي مجاناً عبر (Gemini Flash 3.1)...");
+    setLoadingMsg("جاري تجهيز العرض السينمائي السريع...");
     setLoading(true);
     
     try {
-        const audioUrls = [];
-        for (let i = 0; i < videoScript.length; i++) {
-             const url = await fetchAudioWithFallback(videoScript[i]);
-             if (url) {
-                 audioUrls.push(url);
-             } else {
-                 // Fallback for lines that are ONLY emojis
-                 audioUrls.push(null);
-             }
-        }
+        // We simulate a quick loading phase for UI consistency
+        await new Promise(r => setTimeout(r, 500));
+        
         setLoading(false);
         setIsPlaying(true);
         setCurrentLine(0);
         
         const playNext = (index) => {
-            if (index >= audioUrls.length) {
+            if (index >= videoScript.length) {
                 setIsPlaying(false);
                 return;
             }
             setCurrentLine(index);
             
-            if (!audioUrls[index]) {
-                setTimeout(() => playNext(index + 1), 600);
-                return;
-            }
-
-            const audio = new Audio(audioUrls[index]);
-            audioRef.current = audio;
-            audio.onended = () => playNext(index + 1);
-            audio.play();
+            // Dynamic reading speed: ~60ms per character, minimum 800ms for fast TikTok pace
+            const duration = Math.max(800, videoScript[index].length * 60);
+            
+            // Store the timeout ID so we can clear it if stopped
+            audioRef.current = setTimeout(() => playNext(index + 1), duration);
         }
         playNext(0);
         
@@ -235,7 +220,7 @@ export default function App() {
 
   const stopVideo = () => {
     if (audioRef.current) {
-        audioRef.current.pause();
+        clearTimeout(audioRef.current);
     }
     setIsPlaying(false);
   };
@@ -442,7 +427,7 @@ export default function App() {
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
                   <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
-                    {isPlaying ? "🎙️ قيد التشغيل..." : "▶️ تشغيل الصوت البشري (Gemini TTS)"}
+                    {isPlaying ? "🎬 قيد العرض..." : "▶️ تشغيل العرض السينمائي (بدون صوت)"}
                   </button>
                   {isPlaying && <button onClick={stopVideo} style={{ padding: '12px', background: '#dc2626', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>⏹️ إيقاف</button>}
                 </div>
