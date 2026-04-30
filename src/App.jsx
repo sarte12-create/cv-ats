@@ -44,7 +44,6 @@ export default function App() {
   const [videoScript, setVideoScript] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentLine, setCurrentLine] = useState(0);
-  const [ttsApiKey, setTtsApiKey] = useState("");
   const audioRef = useRef(null);
 
   // Fetch 3 creative ideas on mount
@@ -139,15 +138,15 @@ export default function App() {
     setLoading(false);
   };
 
-  const fetchAudio = async (text, apiKey) => {
+  const fetchAudio = async (text) => {
     const response = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, apiKey })
+        body: JSON.stringify({ text })
     });
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error || err?.detail?.message || "مفتاح غير مصرح");
+        throw new Error(err?.error || "فشل توليد الصوت المجاني من جوجل");
     }
     const blob = await response.blob();
     return URL.createObjectURL(blob);
@@ -155,19 +154,18 @@ export default function App() {
 
   const playVideo = async () => {
     if (!videoScript || videoScript.length === 0) return;
-    if (!ttsApiKey) { alert("يجب إدخال مفتاح OpenAI أولاً!"); return; }
 
     if (audioRef.current) {
         audioRef.current.pause();
     }
     
-    setLoadingMsg("جاري توليد الصوت الذكي من استوديوهات OpenAI...");
+    setLoadingMsg("جاري توليد صوت جوجل المجاني...");
     setLoading(true);
     
     try {
         const audioUrls = [];
         for (let i = 0; i < videoScript.length; i++) {
-             const url = await fetchAudio(videoScript[i], ttsApiKey);
+             const url = await fetchAudio(videoScript[i]);
              audioUrls.push(url);
         }
         setLoading(false);
@@ -401,14 +399,9 @@ export default function App() {
                     <input key={i} value={line} onChange={(e) => { const newScript = [...videoScript]; newScript[i] = e.target.value; setVideoScript(newScript); }} className="glass-input" style={{ padding: '8px', fontSize: '13px', borderLeft: `3px solid ${i === 0 ? '#10b981' : '#3b82f6'}` }} />
                   ))}
                 </div>
-                <div style={{ marginTop: '15px' }}>
-                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '5px' }}>🔑 مفتاح الـ API الخاص بـ (OpenAI) لإنتاج صوت Echo</label>
-                  <input type="password" value={ttsApiKey} onChange={(e) => setTtsApiKey(e.target.value)} placeholder="مثال: sk-..." className="glass-input" style={{ padding: '8px', fontSize: '12px' }} />
-                </div>
-                
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
                   <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
-                    {isPlaying ? "🎙️ قيد التشغيل..." : "▶️ تشغيل الصوت البشري"}
+                    {isPlaying ? "🎙️ قيد التشغيل..." : "▶️ تشغيل صوت جوجل (مجاني تماماً)"}
                   </button>
                   {isPlaying && <button onClick={stopVideo} style={{ padding: '12px', background: '#dc2626', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>⏹️ إيقاف</button>}
                 </div>
