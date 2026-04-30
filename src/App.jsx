@@ -112,9 +112,13 @@ export default function App() {
     setLoading(true);
     setLoadingMsg("جاري كتابة السكربت السينمائي والخطاف بالذكاء الاصطناعي...");
     try {
-      const prompt = `أنت خبير صناعة محتوى Reels/TikTok سريع الانتشار (Viral). الموضوع: "${videoTopic}". 
-      اكتب سكربت فيديو قصير جداً لمقدم خدمات كتابة السيرة الذاتية (CV/ATS).
-      أهم قاعدة: لا تكتب جملاً طويلة أبداً! قسّم النص إلى عبارات قصيرة جداً (من كلمتين إلى 4 كلمات كحد أقصى لكل سطر) مع إيموجي لكل سطر، على طريقة أليكس هرموزي (Alex Hormozi).
+      const prompt = `أنت صانع محتوى "ترند القراءة الصامتة" (Silent Fast-Reading Phonk) في تيك توك بالسعودية. الموضوع: "${videoTopic}". 
+      الهدف: الترويج لخدمة كتابة سيرة ذاتية (CV) تتوافق مع نظام (ATS) بشكل احترافي.
+      شروط كتابة السكربت:
+      1. الخطاف (Hook): يجب أن يكون صادماً، مستفزاً، أو يكشف سراً (مثال: "معلومة بتصدمك عن الـ HR"، "ليش تنرفض وأنت الأفضل؟").
+      2. السرعة والتقطيع: لا تكتب جملاً طويلة أبداً! قسّم النص إلى عبارات قصيرة جداً (كلمتين إلى 4 كلمات كحد أقصى لكل سطر) مع إيموجي معبر لكل سطر.
+      3. الأسلوب: لهجة بيضاء سعودية، إيقاع سريع، يعطي معلومة صادمة ثم يقدم الحل.
+      4. الخاتمة (CTA): طلب التواصل لتجهيز سيرة ذاتية لا ترفض (عبر رابط البايو أو الخاص).
       
       رد بمصفوفة JSON فقط بالشكل التالي:
       {
@@ -224,6 +228,31 @@ export default function App() {
         clearTimeout(audioRef.current);
     }
     setIsPlaying(false);
+  };
+
+  const startRecordingMode = async () => {
+    if (!videoScript || videoScript.length === 0) {
+        alert("⚠️ عذراً! يجب توليد السكربت أولاً.");
+        return;
+    }
+    const container = document.getElementById('video-export-container');
+    if (!container) return;
+    
+    try {
+        if (container.requestFullscreen) {
+            await container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) { // Safari
+            await container.webkitRequestFullscreen();
+        }
+    } catch (e) {
+        console.warn("Fullscreen API not supported:", e);
+        alert("متصفحك لا يدعم وضع الشاشة الكاملة التلقائي، قم بتسجيل الشاشة الآن مباشرة.");
+    }
+
+    // Wait a brief moment for fullscreen transition, then auto-play
+    setTimeout(() => {
+        playVideo();
+    }, 1000);
   };
 
   const updateSlide = (index, field, value) => {
@@ -428,7 +457,10 @@ export default function App() {
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
                   <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
-                    {isPlaying ? "🎬 قيد العرض..." : "▶️ تشغيل العرض السينمائي (بدون صوت)"}
+                    {isPlaying ? "🎬 قيد العرض..." : "▶️ تشغيل (للمعاينة)"}
+                  </button>
+                  <button onClick={startRecordingMode} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(59,130,246,0.3)' }}>
+                    📥 وضع تسجيل الشاشة
                   </button>
                   {isPlaying && <button onClick={stopVideo} style={{ padding: '12px', background: '#dc2626', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>⏹️ إيقاف</button>}
                 </div>
@@ -580,30 +612,40 @@ export default function App() {
                 <p>قم بتوليد سيناريو الفيديو من القائمة الجانبية لتبدأ المعاينة الصوتية</p>
               </div>
             ) : (
-              <div className="video-canvas-mockup">
-                <div className="video-content-wrapper" style={{ justifyContent: 'center' }}>
-                  {currentLine > 0 && (
-                    <div className="video-text-line past-line">
-                      {videoScript[currentLine - 1]}
-                    </div>
-                  )}
-                  
-                  <div className="video-text-line active-line">
-                    {videoScript[currentLine]}
-                  </div>
-                  
-                  {currentLine < videoScript.length - 1 && (
-                    <div className="video-text-line future-line">
-                      {videoScript[currentLine + 1]}
-                    </div>
-                  )}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <button onClick={() => setBgColor('#0f172a')} style={{ padding: '8px 15px', background: '#0f172a', borderRadius: '8px', color: 'white', border: bgColor === '#0f172a' ? '2px solid white' : 'none' }}>مظلم 🌙</button>
+                    <button onClick={() => setBgColor('#00ff00')} style={{ padding: '8px 15px', background: '#00ff00', borderRadius: '8px', color: 'black', fontWeight: 'bold', border: bgColor === '#00ff00' ? '2px solid white' : 'none' }}>كروما (شاشة خضراء) 🟩</button>
                 </div>
-                <div className="video-bottom-overlay">
-                  <div className="video-user-details">
-                    <img src="/logo.png" style={{width: 50, height: 50, borderRadius: '50%'}} alt="Logo" />
-                    <span>سيرتك علينا ✔️</span>
+                
+                <div id="video-export-container" className="video-canvas-mockup" style={{ background: bgColor || '#0f172a', border: bgColor === '#00ff00' ? 'none' : '' }}>
+                  <div className="video-content-wrapper" style={{ justifyContent: 'center' }}>
+                    {currentLine > 0 && (
+                      <div className="video-text-line past-line">
+                        {videoScript[currentLine - 1]}
+                      </div>
+                    )}
+                    
+                    <div className="video-text-line active-line">
+                      {videoScript[currentLine]}
+                    </div>
+                    
+                    {currentLine < videoScript.length - 1 && (
+                      <div className="video-text-line future-line">
+                        {videoScript[currentLine + 1]}
+                      </div>
+                    )}
                   </div>
-                  <div className="video-sound">🎵 الصوت الأصلي - سيرتك علينا</div>
+                  
+                  {!isPlaying && (
+                      <div className="video-bottom-overlay">
+                        <div className="video-user-details">
+                          <img src="/logo.png" style={{width: 50, height: 50, borderRadius: '50%'}} alt="Logo" />
+                          <span>سيرتك علينا ✔️</span>
+                        </div>
+                        <div className="video-sound">🎵 الصوت الأصلي - سيرتك علينا</div>
+                      </div>
+                  )}
                 </div>
               </div>
             )}
