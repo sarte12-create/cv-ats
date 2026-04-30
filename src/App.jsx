@@ -32,6 +32,7 @@ export default function App() {
   const [appMode, setAppMode] = useState("carousel"); // 'carousel' or 'video'
   const [activeTemplate, setActiveTemplate] = useState([]);
   const [suggestedIdeas, setSuggestedIdeas] = useState([]);
+  const [suggestedVideoIdeas, setSuggestedVideoIdeas] = useState([]);
   const [customIdea, setCustomIdea] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
@@ -47,10 +48,29 @@ export default function App() {
   const [currentLine, setCurrentLine] = useState(0);
   const audioRef = useRef(null);
 
-  // Fetch 3 creative ideas on mount
+  // Fetch ideas on mount
   useEffect(() => {
     fetchAIideas();
+    fetchVideoIdeas();
   }, []);
+
+  const fetchVideoIdeas = async () => {
+    try {
+      const prompt = `أنت خبير محتوى تيك توك في السعودية متخصص بالتوظيف والسير الذاتية (ATS). 
+      أعطني 5 أفكار (فيديوهات ريلز) مختلفة وجذابة جداً (Clickbait) مخصصة لترند القراءة السريعة الصامتة (Phonk).
+      
+      يجب أن ترد بمصفوفة JSON فقط بالشكل التالي:
+      [
+        {"title": "عنوان قصير جذاب", "description": "وصف الفكرة"}
+      ]`;
+      const result = await executeWithFallback(prompt);
+      const rawText = result.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
+      const res = JSON.parse(rawText);
+      setSuggestedVideoIdeas(res);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchAIideas = async () => {
     setLoading(true);
