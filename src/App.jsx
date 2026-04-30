@@ -696,32 +696,85 @@ export default function App() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ width: '100%', marginBottom: '15px' }}>
-                  <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '8px', textAlign: 'center' }}>اختر قالب الفيديو:</div>
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                      <button onClick={() => setBgColor('#0f172a')} style={{ flex: 1, padding: '8px', background: '#0f172a', borderRadius: '8px', color: 'white', border: bgColor === '#0f172a' ? '2px solid white' : '1px solid #333' }}>الظلام (Dark) 🌙</button>
-                      <button onClick={() => setBgColor('#991b1b')} style={{ flex: 1, padding: '8px', background: '#991b1b', borderRadius: '8px', color: 'white', border: bgColor === '#991b1b' ? '2px solid white' : '1px solid #333' }}>الهجومي (Red) 🛑</button>
-                      <button onClick={() => setBgColor('#00ff00')} style={{ flex: 1, padding: '8px', background: '#00ff00', borderRadius: '8px', color: 'black', fontWeight: 'bold', border: bgColor === '#00ff00' ? '2px solid white' : '1px solid #333' }}>كروما (للمونتاج) 🟩</button>
+                  <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '8px', textAlign: 'center' }}>اختر قالب الفيديو (تصاميم احترافية للريلز):</div>
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button onClick={() => setBgColor('theme-glass')} style={{ flex: 1, minWidth: '100px', padding: '8px', background: 'linear-gradient(135deg, #1e1b4b, #312e81)', borderRadius: '8px', color: 'white', border: bgColor === 'theme-glass' ? '2px solid white' : '1px solid #333' }}>زجاجي فاخر 🔮</button>
+                      <button onClick={() => setBgColor('theme-tweet')} style={{ flex: 1, minWidth: '100px', padding: '8px', background: '#0f172a', borderRadius: '8px', color: 'white', border: bgColor === 'theme-tweet' ? '2px solid white' : '1px solid #333' }}>تغريدة احترافية 🐦</button>
+                      <button onClick={() => setBgColor('theme-imessage')} style={{ flex: 1, minWidth: '100px', padding: '8px', background: '#000000', borderRadius: '8px', color: 'white', border: bgColor === 'theme-imessage' ? '2px solid white' : '1px solid #333' }}>رسالة آيفون 💬</button>
+                      <button onClick={() => setBgColor('#00ff00')} style={{ flex: 1, minWidth: '100px', padding: '8px', background: '#00ff00', borderRadius: '8px', color: 'black', fontWeight: 'bold', border: bgColor === '#00ff00' ? '2px solid white' : '1px solid #333' }}>كروما (مونتاج) 🟩</button>
                   </div>
                 </div>
                 
-                <div id="video-export-container" className="video-canvas-mockup" style={{ background: bgColor || '#0f172a', border: bgColor === '#00ff00' ? 'none' : '' }}>
-                  <div className="video-content-wrapper" style={{ justifyContent: 'center' }}>
-                    {currentLine > 0 && (
-                      <div className="video-text-line past-line">
-                        {videoScript[currentLine - 1]}
+                <div 
+                  id="video-export-container" 
+                  className="video-canvas-mockup" 
+                  style={{ 
+                    background: bgColor === 'theme-glass' ? 'linear-gradient(135deg, #0f172a, #312e81, #1e1b4b)' :
+                                bgColor === 'theme-tweet' ? '#0f172a' :
+                                bgColor === 'theme-imessage' ? '#000000' :
+                                bgColor || '#0f172a', 
+                    border: bgColor === '#00ff00' ? 'none' : '' 
+                  }}
+                >
+                  
+                  {bgColor === 'theme-tweet' ? (
+                    <div style={{ background: '#1e293b', width: '85%', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <img src="/logo.png" style={{ width: '48px', height: '48px', borderRadius: '50%' }} alt="Avatar" />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                          <span style={{ color: 'white', fontWeight: 'bold', fontSize: '16px' }}>سيرتك علينا ✔️</span>
+                          <span style={{ color: '#94a3b8', fontSize: '14px' }}>@seartk3</span>
+                        </div>
                       </div>
-                    )}
-                    
-                    <div className="video-text-line active-line">
-                      {videoScript[currentLine]}
+                      <div style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', lineHeight: '1.4', textAlign: 'right' }}>
+                        {videoScript[currentLine]}
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '13px', marginTop: '10px' }}>
+                        {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute:'2-digit' })} · {new Date().toLocaleDateString('ar-SA')} · <b>1.2M</b> Views
+                      </div>
                     </div>
-                    
-                    {currentLine < videoScript.length - 1 && (
-                      <div className="video-text-line future-line">
-                        {videoScript[currentLine + 1]}
+                  ) : bgColor === 'theme-imessage' ? (
+                    <div style={{ width: '100%', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      {currentLine > 0 && (
+                        <div style={{ alignSelf: 'flex-start', background: '#333333', color: 'white', padding: '12px 18px', borderRadius: '20px 20px 20px 4px', maxWidth: '75%', fontSize: '18px', marginBottom: '30px', opacity: 0.5 }}>
+                           {videoScript[currentLine - 1]}
+                        </div>
+                      )}
+                      <div style={{ alignSelf: 'flex-end', background: '#0b84ff', color: 'white', padding: '14px 20px', borderRadius: '20px 20px 4px 20px', maxWidth: '85%', fontSize: '26px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(11,132,255,0.4)', transition: 'all 0.3s ease' }}>
+                        {videoScript[currentLine]}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : bgColor === 'theme-glass' ? (
+                    <div style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', width: '85%', padding: '40px 20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+                      {currentLine > 0 && (
+                        <div style={{ fontSize: '18px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', textAlign: 'center' }}>
+                          {videoScript[currentLine - 1]}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '38px', color: 'white', fontWeight: '900', textAlign: 'center', textShadow: '0 0 20px rgba(255,255,255,0.3)', lineHeight: '1.3' }}>
+                        {videoScript[currentLine]}
+                      </div>
+                    </div>
+                  ) : (
+                    // Default / Chroma / Old layout
+                    <div className="video-content-wrapper" style={{ justifyContent: 'center' }}>
+                      {currentLine > 0 && (
+                        <div className="video-text-line past-line">
+                          {videoScript[currentLine - 1]}
+                        </div>
+                      )}
+                      
+                      <div className="video-text-line active-line" style={{ fontSize: '42px' }}>
+                        {videoScript[currentLine]}
+                      </div>
+                      
+                      {currentLine < videoScript.length - 1 && (
+                        <div className="video-text-line future-line">
+                          {videoScript[currentLine + 1]}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   {!isPlaying && (
                       <div className="video-bottom-overlay">
