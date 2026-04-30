@@ -15,32 +15,35 @@ export default async function handler(req, res) {
       key = key.slice(1, -1);
     }
 
+    if (!key.startsWith('sk-')) {
+        return res.status(400).json({ error: 'عذراً، يجب استخدام مفتاح OpenAI (يبدأ بـ sk-) لأن جوجل ترفض المفاتيح العادية وتحتاج إلى ملف Service Account معقد.' });
+    }
+
     // ==========================================
-    // GOOGLE CLOUD TTS ENGINE (Studio/Wavenet)
+    // OPENAI TTS ENGINE (Echo)
     // ==========================================
-    const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${key}`, {
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        input: { text },
-        voice: { languageCode: 'ar-XA', name: 'ar-XA-Wavenet-B' },
-        audioConfig: { audioEncoding: 'MP3' }
+        model: 'tts-1',
+        voice: 'echo', 
+        input: text
       })
     });
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      return res.status(response.status).json({ error: `Google TTS Error: ${errData?.error?.message || errData?.error?.status || response.statusText}` });
+      return res.status(response.status).json({ error: `OpenAI Error: ${errData?.error?.message || response.statusText}` });
     }
 
-    const data = await response.json();
-    if (!data.audioContent) {
-       return res.status(500).json({ error: 'No audio content returned from Google' });
-    }
-    
-    const arrayBuffer = Buffer.from(data.audioContent, 'base64');
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     res.setHeader('Content-Type', 'audio/mpeg');
-    return res.send(arrayBuffer);
+    return res.send(buffer);
     
   } catch (error) {
     res.status(500).json({ error: error.message });

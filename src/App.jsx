@@ -44,6 +44,7 @@ export default function App() {
   const [videoScript, setVideoScript] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentLine, setCurrentLine] = useState(0);
+  const [ttsApiKey, setTtsApiKey] = useState("");
   const audioRef = useRef(null);
 
   // Fetch 3 creative ideas on mount
@@ -138,46 +139,35 @@ export default function App() {
     setLoading(false);
   };
 
-  const fetchAudioWithFallback = async (text) => {
-    let lastError = null;
-    if (API_KEYS.length === 0) throw new Error("لا توجد مفاتيح محفوظة في النظام!");
-    
-    for (let i = 0; i < API_KEYS.length; i++) {
-        try {
-            // Calling our Universal Vercel Backend Proxy using Google Keys
-            const response = await fetch("/api/tts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text, apiKey: API_KEYS[i].trim() })
-            });
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err?.error || err?.detail?.message || "مفتاح غير مصرح");
-            }
-            const blob = await response.blob();
-            return URL.createObjectURL(blob);
-        } catch (e) {
-            console.warn(`مفتاح رقم ${i+1} فشل في توليد الصوت.`, e.message);
-            lastError = e;
-        }
+  const fetchAudio = async (text, apiKey) => {
+    const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, apiKey })
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || err?.detail?.message || "مفتاح غير مصرح");
     }
-    throw new Error(`لم يتم قبول مفاتيح Gemini للصوت. يرجى تفعيل خدمة (Google Cloud TTS) عليها! الخطأ الأخير: ${lastError?.message}`);
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
   }
 
   const playVideo = async () => {
     if (!videoScript || videoScript.length === 0) return;
+    if (!ttsApiKey) { alert("يجب إدخال مفتاح OpenAI أولاً!"); return; }
 
     if (audioRef.current) {
         audioRef.current.pause();
     }
     
-    setLoadingMsg("جاري توليد الصوت الذكي من استوديوهات جوجل...");
+    setLoadingMsg("جاري توليد الصوت الذكي من استوديوهات OpenAI...");
     setLoading(true);
     
     try {
         const audioUrls = [];
         for (let i = 0; i < videoScript.length; i++) {
-             const url = await fetchAudioWithFallback(videoScript[i]);
+             const url = await fetchAudio(videoScript[i], ttsApiKey);
              audioUrls.push(url);
         }
         setLoading(false);
@@ -411,9 +401,14 @@ export default function App() {
                     <input key={i} value={line} onChange={(e) => { const newScript = [...videoScript]; newScript[i] = e.target.value; setVideoScript(newScript); }} className="glass-input" style={{ padding: '8px', fontSize: '13px', borderLeft: `3px solid ${i === 0 ? '#10b981' : '#3b82f6'}` }} />
                   ))}
                 </div>
+                <div style={{ marginTop: '15px' }}>
+                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '5px' }}>🔑 مفتاح الـ API الخاص بـ (OpenAI) لإنتاج صوت Echo</label>
+                  <input type="password" value={ttsApiKey} onChange={(e) => setTtsApiKey(e.target.value)} placeholder="مثال: sk-..." className="glass-input" style={{ padding: '8px', fontSize: '12px' }} />
+                </div>
+                
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
                   <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
-                    {isPlaying ? "🎙️ قيد التشغيل..." : "▶️ تشغيل صوت جوجل (Studio)"}
+                    {isPlaying ? "🎙️ قيد التشغيل..." : "▶️ تشغيل الصوت البشري"}
                   </button>
                   {isPlaying && <button onClick={stopVideo} style={{ padding: '12px', background: '#dc2626', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>⏹️ إيقاف</button>}
                 </div>
