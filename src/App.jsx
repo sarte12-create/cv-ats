@@ -44,6 +44,8 @@ export default function App() {
   const [videoScript, setVideoScript] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentLine, setCurrentLine] = useState(0);
+  const [elevenLabsKey, setElevenLabsKey] = useState("sk_23c080cb002d212b2a8ec0db6823dc559c8df61e49dacd53");
+  const audioRef = useRef(null);
 
   // Fetch 3 creative ideas on mount
   useEffect(() => {
@@ -132,27 +134,70 @@ export default function App() {
     setLoading(false);
   };
 
-  const playVideo = () => {
+  const fetchElevenLabsAudio = async (text, apiKey) => {
+    const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "xi-api-key": apiKey
+        },
+        body: JSON.stringify({
+            text: text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+        })
+    });
+    if (!response.ok) throw new Error("فشل توليد الصوت، تأكد من صحة مفتاح ElevenLabs الخاص بك.");
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  }
+
+  const playVideo = async () => {
     if (!videoScript || videoScript.length === 0) return;
-    setIsPlaying(true);
-    setCurrentLine(0);
-    window.speechSynthesis.cancel();
+    if (!elevenLabsKey) { alert("يجب إدخال مفتاح ElevenLabs أولاً!"); return; }
+
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
     
-    const readLine = (index) => {
-      if (index >= videoScript.length) {
+    setLoadingMsg("جاري توليد الصوت البشري (ElevenLabs)...");
+    setLoading(true);
+    
+    try {
+        const audioUrls = [];
+        for (let i = 0; i < videoScript.length; i++) {
+             const url = await fetchElevenLabsAudio(videoScript[i], elevenLabsKey);
+             audioUrls.push(url);
+        }
+        setLoading(false);
+        setIsPlaying(true);
+        setCurrentLine(0);
+        
+        const playNext = (index) => {
+            if (index >= audioUrls.length) {
+                setIsPlaying(false);
+                return;
+            }
+            setCurrentLine(index);
+            const audio = new Audio(audioUrls[index]);
+            audioRef.current = audio;
+            audio.onended = () => playNext(index + 1);
+            audio.play();
+        }
+        playNext(0);
+        
+    } catch(e) {
+        setLoading(false);
         setIsPlaying(false);
-        return;
-      }
-      setCurrentLine(index);
-      const utterance = new SpeechSynthesisUtterance(videoScript[index]);
-      utterance.lang = 'ar-SA'; 
-      utterance.rate = 1.1; 
-      utterance.onend = () => readLine(index + 1);
-      utterance.onerror = () => { setIsPlaying(false); };
-      window.speechSynthesis.speak(utterance);
-    };
-    
-    readLine(0);
+        alert(e.message);
+    }
+  };
+
+  const stopVideo = () => {
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
+    setIsPlaying(false);
   };
 
   const updateSlide = (index, field, value) => {
@@ -355,7 +400,17 @@ export default function App() {
                     <input key={i} value={line} onChange={(e) => { const newScript = [...videoScript]; newScript[i] = e.target.value; setVideoScript(newScript); }} className="glass-input" style={{ padding: '8px', fontSize: '13px', borderLeft: `3px solid ${i === 0 ? '#10b981' : '#3b82f6'}` }} />
                   ))}
                 </div>
-                <button onClick={playVideo} disabled={isPlaying} style={{ width: '100%', marginTop: '15px', padding: '15px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>{isPlaying ? "🎙️ جاري التحدث..." : "▶️ تشغيل المعاينة الصوتية"}</button>
+                <div style={{ marginTop: '15px' }}>
+                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '5px' }}>🔑 مفتاح ElevenLabs السري (صوت ذكي احترافي)</label>
+                  <input type="password" value={elevenLabsKey} onChange={(e) => setElevenLabsKey(e.target.value)} className="glass-input" style={{ padding: '8px', fontSize: '12px' }} />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                  <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
+                    {isPlaying ? "🎙️ قيد التشغيل..." : "▶️ تشغيل الصوت البشري"}
+                  </button>
+                  {isPlaying && <button onClick={stopVideo} style={{ padding: '12px', background: '#dc2626', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>⏹️ إيقاف</button>}
+                </div>
               </div>
             )}
           </div>
