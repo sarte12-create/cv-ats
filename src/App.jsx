@@ -44,7 +44,7 @@ export default function App() {
   const [videoScript, setVideoScript] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentLine, setCurrentLine] = useState(0);
-  const [elevenLabsKey, setElevenLabsKey] = useState("sk_23c080cb002d212b2a8ec0db6823dc559c8df61e49dacd53");
+  const [ttsApiKey, setTtsApiKey] = useState("");
   const audioRef = useRef(null);
 
   // Fetch 3 creative ideas on mount
@@ -139,8 +139,8 @@ export default function App() {
     setLoading(false);
   };
 
-  const fetchElevenLabsAudio = async (text, apiKey) => {
-    // Calling our secure Vercel backend proxy to bypass ElevenLabs Cloudflare bot-blocks
+  const fetchAudio = async (text, apiKey) => {
+    // Calling our Universal Vercel Backend Proxy (Supports OpenAI, Google TTS, ElevenLabs)
     const response = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -148,7 +148,7 @@ export default function App() {
     });
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(`خطأ من الخادم/ElevenLabs: ${err?.detail?.message || err?.error || err?.detail?.status || "تأكد من المفتاح أو الرصيد"}`);
+        throw new Error(`خطأ في توليد الصوت: ${err?.error || err?.detail?.message || "تأكد من المفتاح أو الرصيد"}`);
     }
     const blob = await response.blob();
     return URL.createObjectURL(blob);
@@ -156,19 +156,19 @@ export default function App() {
 
   const playVideo = async () => {
     if (!videoScript || videoScript.length === 0) return;
-    if (!elevenLabsKey) { alert("يجب إدخال مفتاح ElevenLabs أولاً!"); return; }
+    if (!ttsApiKey) { alert("يجب إدخال مفتاح الـ API أولاً!"); return; }
 
     if (audioRef.current) {
         audioRef.current.pause();
     }
     
-    setLoadingMsg("جاري توليد الصوت البشري (ElevenLabs)...");
+    setLoadingMsg("جاري توليد الصوت البشري المتقدم...");
     setLoading(true);
     
     try {
         const audioUrls = [];
         for (let i = 0; i < videoScript.length; i++) {
-             const url = await fetchElevenLabsAudio(videoScript[i], elevenLabsKey);
+             const url = await fetchAudio(videoScript[i], ttsApiKey);
              audioUrls.push(url);
         }
         setLoading(false);
@@ -403,8 +403,8 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ marginTop: '15px' }}>
-                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '5px' }}>🔑 مفتاح ElevenLabs السري (صوت ذكي احترافي)</label>
-                  <input type="password" value={elevenLabsKey} onChange={(e) => setElevenLabsKey(e.target.value)} className="glass-input" style={{ padding: '8px', fontSize: '12px' }} />
+                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '5px' }}>🔑 مفتاح الـ API (يدعم OpenAI أو Google Studio أو ElevenLabs)</label>
+                  <input type="password" value={ttsApiKey} onChange={(e) => setTtsApiKey(e.target.value)} placeholder="مثال: sk-... أو AIza..." className="glass-input" style={{ padding: '8px', fontSize: '12px' }} />
                 </div>
                 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
