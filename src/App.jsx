@@ -140,21 +140,15 @@ export default function App() {
   };
 
   const fetchElevenLabsAudio = async (text, apiKey) => {
-    const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB", {
+    // Calling our secure Vercel backend proxy to bypass ElevenLabs Cloudflare bot-blocks
+    const response = await fetch("/api/tts", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "xi-api-key": apiKey
-        },
-        body: JSON.stringify({
-            text: text,
-            model_id: "eleven_multilingual_v2",
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, apiKey })
     });
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(`خطأ من ElevenLabs: ${err?.detail?.message || err?.detail?.status || "تأكد من المفتاح أو الرصيد"}`);
+        throw new Error(`خطأ من الخادم/ElevenLabs: ${err?.detail?.message || err?.error || err?.detail?.status || "تأكد من المفتاح أو الرصيد"}`);
     }
     const blob = await response.blob();
     return URL.createObjectURL(blob);
