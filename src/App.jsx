@@ -180,7 +180,10 @@ export default function App() {
   }
 
   const playVideo = async () => {
-    if (!videoScript || videoScript.length === 0) return;
+    if (!videoScript || videoScript.length === 0) {
+        alert("⚠️ عذراً! يجب عليك توليد سكربت الفيديو أولاً من خلال الضغط على زر 'صناعة سكربت فايرل' باللون الأزرق في الأعلى.");
+        return;
+    }
 
     if (audioRef.current) {
         audioRef.current.pause();
