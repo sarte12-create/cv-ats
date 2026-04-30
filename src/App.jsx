@@ -112,15 +112,20 @@ export default function App() {
     setLoading(true);
     setLoadingMsg("جاري كتابة السكربت السينمائي والخطاف بالذكاء الاصطناعي...");
     try {
-      const prompt = `أنت صانع محتوى Reels/TikTok خبير وخطير. الموضوع: "${videoTopic}". 
-      اكتب سكربت فيديو قصير جداً (سريع الإيقاع) لمقدم خدمات كتابة السيرة الذاتية (CV/ATS).
-      رد بمصفوفة JSON فقط تحوي السطور مقسمة بوضوح بالشكل التالي تماماً:
+      const prompt = `أنت خبير صناعة محتوى Reels/TikTok سريع الانتشار (Viral). الموضوع: "${videoTopic}". 
+      اكتب سكربت فيديو قصير جداً لمقدم خدمات كتابة السيرة الذاتية (CV/ATS).
+      أهم قاعدة: لا تكتب جملاً طويلة أبداً! قسّم النص إلى عبارات قصيرة جداً (من كلمتين إلى 4 كلمات كحد أقصى لكل سطر) مع إيموجي لكل سطر، على طريقة أليكس هرموزي (Alex Hormozi).
+      
+      رد بمصفوفة JSON فقط بالشكل التالي:
       {
         "lines": [
-          "الجملة الأولى الخطاف المثير (مثلاً: سر محد يعرفه عن التوظيف!)",
-          "الجملة الثانية (معلومة صادمة)",
-          "الجملة الثالثة (الحل السريع)",
-          "الجملة الأخيرة الدعوة لاتخاذ إجراء (كلمني أضبط سيرتك)"
+          "سر خطير! 🤫",
+          "عن التوظيف 🏢",
+          "90% ينرفضون ❌",
+          "بسبب الروبوت 🤖",
+          "سيرتك غير مقروءة 📄",
+          "الحل عندي ✔️",
+          "تواصل معي الآن 📲"
         ]
       }`;
       const result = await executeWithFallback(prompt);
@@ -147,7 +152,10 @@ export default function App() {
             voice_settings: { stability: 0.5, similarity_boost: 0.75 }
         })
     });
-    if (!response.ok) throw new Error("فشل توليد الصوت، تأكد من صحة مفتاح ElevenLabs الخاص بك.");
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(`خطأ من ElevenLabs: ${err?.detail?.message || err?.detail?.status || "تأكد من المفتاح أو الرصيد"}`);
+    }
     const blob = await response.blob();
     return URL.createObjectURL(blob);
   }
@@ -560,15 +568,22 @@ export default function App() {
               </div>
             ) : (
               <div className="video-canvas-mockup">
-                <div className="video-content-wrapper">
-                  {videoScript.map((line, i) => (
-                    <div 
-                      key={i} 
-                      className={`video-text-line ${i === currentLine && isPlaying ? 'active-line' : ''} ${i < currentLine && isPlaying ? 'past-line' : ''}`}
-                    >
-                      {line}
+                <div className="video-content-wrapper" style={{ justifyContent: 'center' }}>
+                  {currentLine > 0 && (
+                    <div className="video-text-line past-line">
+                      {videoScript[currentLine - 1]}
                     </div>
-                  ))}
+                  )}
+                  
+                  <div className="video-text-line active-line">
+                    {videoScript[currentLine]}
+                  </div>
+                  
+                  {currentLine < videoScript.length - 1 && (
+                    <div className="video-text-line future-line">
+                      {videoScript[currentLine + 1]}
+                    </div>
+                  )}
                 </div>
                 <div className="video-bottom-overlay">
                   <div className="video-user-details">

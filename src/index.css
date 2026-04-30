@@ -623,7 +623,13 @@ button:active {
 
 .video-text-line.past-line {
   color: rgba(255,255,255,0.1);
-  transform: scale(0.85);
+  transform: scale(0.85) translateY(-20px);
+  filter: blur(1px);
+}
+
+.video-text-line.future-line {
+  color: rgba(255,255,255,0.1);
+  transform: scale(0.85) translateY(20px);
   filter: blur(1px);
 }
 
