@@ -15,7 +15,9 @@ const executeWithFallback = async (promptMsg) => {
   for (let i = 0; i < API_KEYS.length; i++) {
     try {
       const genAI = new GoogleGenerativeAI(API_KEYS[i].trim());
-      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      // Reverted to gemini-1.5-flash which has a 1,500 requests/day free tier limit
+      // rather than the restricted 20 requests/day limit on the newer flash models
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent(promptMsg);
       return result; // Success! Return immediately.
     } catch (e) {
