@@ -49,6 +49,7 @@ export default function App() {
   const [bgColor, setBgColor] = useState('#0f172a');
   const [premiumTopic, setPremiumTopic] = useState("");
   const [premiumTweet, setPremiumTweet] = useState(null);
+  const [premiumTemplate, setPremiumTemplate] = useState('tweet');
   const [activeBroll, setActiveBroll] = useState('/broll/broll1.mp4');
   const premiumVideoRef = useRef(null);
   const [showGrowthKit, setShowGrowthKit] = useState(false);
@@ -558,6 +559,12 @@ export default function App() {
               هذا القسم يولد فيديوهات هادئة واحترافية لحسابك (تغريدة + فيديو مكتبي). المقطع يُحفظ مدمجاً جاهزاً للرفع!
             </p>
             
+            <label style={{ color: 'white', fontSize: '13px', display: 'block', marginBottom: '8px' }}>اختر شكل عرض النص:</label>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <button onClick={() => setPremiumTemplate('tweet')} style={{ flex: 1, padding: '8px', background: premiumTemplate === 'tweet' ? '#3b82f6' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>🐦 قالب التغريدة</button>
+                <button onClick={() => setPremiumTemplate('text')} style={{ flex: 1, padding: '8px', background: premiumTemplate === 'text' ? '#10b981' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>✍️ نص حر (بدون مربع)</button>
+            </div>
+            
             <label style={{ color: 'white', fontSize: '13px', display: 'block', marginBottom: '8px' }}>اختر خلفية الفيديو (B-Roll):</label>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <button onClick={() => setActiveBroll('/broll/broll1.mp4')} style={{ flex: 1, padding: '8px', background: activeBroll === '/broll/broll1.mp4' ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>💻 ماك بوك</button>
@@ -912,21 +919,29 @@ export default function App() {
                 {/* Overlay Tweet Mockup */}
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                     {premiumTweet ? (
-                        <div id="premium-tweet-mockup" style={{ background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', width: '100%', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', border: '1px solid rgba(255,255,255,0.15)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>💼</div>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                    <span style={{ color: 'white', fontWeight: 'bold', fontSize: '16px' }}>سيرتك علينا ✔️</span>
-                                    <span style={{ color: '#94a3b8', fontSize: '14px' }}>@seartk3</span>
+                        premiumTemplate === 'tweet' ? (
+                            <div id="premium-tweet-mockup" style={{ background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', width: '100%', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>💼</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                        <span style={{ color: 'white', fontWeight: 'bold', fontSize: '16px' }}>سيرتك علينا ✔️</span>
+                                        <span style={{ color: '#94a3b8', fontSize: '14px' }}>@seartk3</span>
+                                    </div>
+                                </div>
+                                <div style={{ color: 'white', fontSize: '22px', fontWeight: 'bold', lineHeight: '1.5', textAlign: 'right', whiteSpace: 'pre-wrap', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                                    {premiumTweet}
+                                </div>
+                                <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '5px' }}>
+                                    {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute:'2-digit' })} · {new Date().toLocaleDateString('ar-SA')} · <b>Professional ATS</b>
                                 </div>
                             </div>
-                            <div style={{ color: 'white', fontSize: '22px', fontWeight: 'bold', lineHeight: '1.5', textAlign: 'right', whiteSpace: 'pre-wrap', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                                {premiumTweet}
+                        ) : (
+                            <div id="premium-tweet-mockup" style={{ width: '100%', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                <div style={{ color: 'white', fontSize: '32px', fontWeight: '900', lineHeight: '1.4', textAlign: 'center', whiteSpace: 'pre-wrap', textShadow: '0 6px 20px rgba(0,0,0,0.9), 0 2px 5px rgba(0,0,0,0.8)' }}>
+                                    {premiumTweet}
+                                </div>
                             </div>
-                            <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '5px' }}>
-                                {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute:'2-digit' })} · {new Date().toLocaleDateString('ar-SA')} · <b>Professional ATS</b>
-                            </div>
-                        </div>
+                        )
                     ) : (
                         <div style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>قم بتوليد تغريدة مهنية لرؤية المعاينة</div>
                     )}
