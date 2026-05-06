@@ -402,6 +402,7 @@ export default function App() {
       <div className="sidebar" style={{ width: '450px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h2 style={{ color: 'var(--primary-color)' }}>مصنع محتوى @seartk3 🏭</h2>
+          <button onClick={() => setShowGrowthKit(true)} style={{ background: 'linear-gradient(135deg, #10b981, #3b82f6)', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)', animation: 'pulse 2s infinite' }}>🎁 حزمة الفايرل</button>
         </div>
         
         {/* APP MODE TOGGLE */}
