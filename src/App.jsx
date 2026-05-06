@@ -176,8 +176,9 @@ export default function App() {
         video.muted = true;
         video.playsInline = true;
         
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
             video.oncanplay = resolve;
+            video.onerror = () => reject(new Error("صيغة الفيديو غير مدعومة أو تالفة. يرجى رفع مقطع آخر."));
             video.load();
         });
         
@@ -250,8 +251,9 @@ export default function App() {
         
     } catch(e) {
         console.error(e);
-        alert("فشل الرندر: " + e.message);
+        alert("فشل الرندر: " + (e?.message || JSON.stringify(e) || "خطأ غير معروف"));
         setLoading(false);
+        setLoadingMsg("");
     }
   };
 
@@ -910,18 +912,18 @@ export default function App() {
                 {/* Overlay Tweet Mockup */}
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                     {premiumTweet ? (
-                        <div id="premium-tweet-mockup" style={{ background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)', width: '100%', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div id="premium-tweet-mockup" style={{ background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', width: '100%', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', border: '1px solid rgba(255,255,255,0.15)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <img src="/logo.png" style={{ width: '48px', height: '48px', borderRadius: '50%' }} alt="Avatar" />
+                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>💼</div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                                     <span style={{ color: 'white', fontWeight: 'bold', fontSize: '16px' }}>سيرتك علينا ✔️</span>
                                     <span style={{ color: '#94a3b8', fontSize: '14px' }}>@seartk3</span>
                                 </div>
                             </div>
-                            <div style={{ color: 'white', fontSize: '22px', fontWeight: 'bold', lineHeight: '1.5', textAlign: 'right', whiteSpace: 'pre-wrap' }}>
+                            <div style={{ color: 'white', fontSize: '22px', fontWeight: 'bold', lineHeight: '1.5', textAlign: 'right', whiteSpace: 'pre-wrap', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                                 {premiumTweet}
                             </div>
-                            <div style={{ color: '#64748b', fontSize: '13px', marginTop: '5px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '5px' }}>
                                 {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute:'2-digit' })} · {new Date().toLocaleDateString('ar-SA')} · <b>Professional ATS</b>
                             </div>
                         </div>
