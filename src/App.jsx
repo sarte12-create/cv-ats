@@ -47,6 +47,7 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentLine, setCurrentLine] = useState(0);
   const [bgColor, setBgColor] = useState('#0f172a');
+  const [showGrowthKit, setShowGrowthKit] = useState(false);
   const audioRef = useRef(null);
 
   // Fetch ideas on mount
@@ -359,6 +360,43 @@ export default function App() {
   };
 
   return (
+    <>
+      {showGrowthKit && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(5px)' }}>
+          <div style={{ background: '#1e293b', padding: '30px', borderRadius: '20px', maxWidth: '500px', width: '90%', border: '1px solid #3b82f6', boxShadow: '0 10px 40px rgba(59,130,246,0.3)', color: 'white' }}>
+            <h2 style={{ color: '#3b82f6', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>🎁 حزمة تيك توك السرية (جاهزة)</h2>
+            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '20px' }}>لأنك لا تريد البحث، جهزت لك أفضل المصادر المجانية لتحميل مقاطع الخلفيات (ASMR، رمل، GTA) بدون حقوق لتستخدمها مع قالب الكروما 🟩:</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
+              <a href="https://www.tiktok.com/@satisfying.video.bg" target="_blank" rel="noreferrer" style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', textDecoration: 'none', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'block' }}>
+                <span style={{ fontSize: '18px', marginRight: '10px' }}>📱</span>
+                <b>حساب تيك توك 1:</b> مقاطع رمل وصابون
+              </a>
+              <a href="https://www.tiktok.com/@gta.parkour.bg" target="_blank" rel="noreferrer" style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', textDecoration: 'none', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'block' }}>
+                <span style={{ fontSize: '18px', marginRight: '10px' }}>🚗</span>
+                <b>حساب تيك توك 2:</b> مقاطع GTA 5
+              </a>
+              <a href="https://www.youtube.com/results?search_query=satisfying+vertical+video+background+no+copyright" target="_blank" rel="noreferrer" style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', textDecoration: 'none', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'block' }}>
+                <span style={{ fontSize: '18px', marginRight: '10px' }}>📺</span>
+                <b>يوتيوب:</b> آلاف المقاطع الطويلة الجاهزة للقص
+              </a>
+            </div>
+
+            <div style={{ background: 'rgba(16,185,129,0.1)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.3)', marginBottom: '20px' }}>
+              <b style={{ color: '#10b981' }}>💡 كيف أستخدمها؟</b>
+              <ol style={{ margin: 0, paddingLeft: '20px', marginTop: '10px', fontSize: '13px', lineHeight: '1.6' }}>
+                <li>حمّل مقطع واحد مدته دقيقة من الروابط أعلاه.</li>
+                <li>استخدم أداة سيرتك لإنشاء الفيديو بقالب "كروما 🟩" وحمله.</li>
+                <li>افتح تطبيق CapCut بالجوال.</li>
+                <li>ضع مقطع الـ GTA/ASMR، ثم أضف فيديو سيرتك فوقه كـ (Overlay).</li>
+                <li>استخدم أداة Chroma Key في CapCut لمسح اللون الأخضر. (العملية كلها تأخذ 15 ثانية فقط!)</li>
+              </ol>
+            </div>
+
+            <button onClick={() => setShowGrowthKit(false)} style={{ width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>فهمت، شكراً! 👍</button>
+          </div>
+        </div>
+      )}
     <div className="dashboard-layout">
       {/* SIDEBAR: CONTROLS */}
       <div className="sidebar" style={{ width: '450px', overflowY: 'auto' }}>
@@ -527,7 +565,11 @@ export default function App() {
 
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '10px' }}>أو اكتب فكرتك الخاصة:</p>
             <input type="text" value={videoTopic} onChange={(e) => setVideoTopic(e.target.value)} placeholder="مثال: كيف تتجاوز نظام الفرز الآلي..." className="glass-input" />
-            <button className="glass-button" onClick={generateVideoScript} disabled={loading} style={{ background: 'linear-gradient(135deg, #e92a67, #be123c)' }}>✨ {loading ? "جاري التأليف..." : "توليد السكربت"}</button>
+            
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+              <button className="glass-button" onClick={generateVideoScript} disabled={loading} style={{ flex: 2, background: 'linear-gradient(135deg, #e92a67, #be123c)' }}>✨ {loading ? "جاري التأليف..." : "توليد السكربت"}</button>
+              <button className="glass-button" onClick={() => setShowGrowthKit(true)} style={{ flex: 1, background: '#3b82f6', fontSize: '12px', padding: '5px' }}>🎁 مكتبة الخلفيات</button>
+            </div>
             
             {videoScript && (
               <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
