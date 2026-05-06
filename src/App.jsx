@@ -557,10 +557,19 @@ export default function App() {
             </p>
             
             <label style={{ color: 'white', fontSize: '13px', display: 'block', marginBottom: '8px' }}>اختر خلفية الفيديو (B-Roll):</label>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <button onClick={() => setActiveBroll('/broll/broll1.mp4')} style={{ flex: 1, padding: '8px', background: activeBroll === '/broll/broll1.mp4' ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>💻 ماك بوك</button>
                 <button onClick={() => setActiveBroll('/broll/broll2.mp4')} style={{ flex: 1, padding: '8px', background: activeBroll === '/broll/broll2.mp4' ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>🌳 عمل بالخارج</button>
                 <button onClick={() => setActiveBroll('/broll/broll3.mp4')} style={{ flex: 1, padding: '8px', background: activeBroll === '/broll/broll3.mp4' ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>☕ قهوة ومكتب</button>
+            </div>
+            
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px', marginBottom: '20px', border: '1px dashed rgba(255,255,255,0.2)' }}>
+                <label style={{ display: 'block', color: 'white', fontSize: '12px', marginBottom: '5px' }}>أو ارفع مقطعك الخاص (بدون حقوق):</label>
+                <input type="file" accept="video/*" onChange={(e) => {
+                    if(e.target.files && e.target.files[0]) {
+                        setActiveBroll(URL.createObjectURL(e.target.files[0]));
+                    }
+                }} style={{ color: 'white', fontSize: '12px', width: '100%' }} />
             </div>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '10px' }}>اكتب فكرة التغريدة/النصيحة:</p>
