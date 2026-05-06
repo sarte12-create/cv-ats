@@ -50,15 +50,23 @@ export default function App() {
   const [premiumTopic, setPremiumTopic] = useState("");
   const [premiumTweet, setPremiumTweet] = useState(null);
   const [premiumTemplate, setPremiumTemplate] = useState('tweet');
-  const [activeBroll, setActiveBroll] = useState('/broll/broll1.mp4');
+  const [activeBroll, setActiveBroll] = useState('');
+  const [brollList, setBrollList] = useState([]);
   const premiumVideoRef = useRef(null);
   const [showGrowthKit, setShowGrowthKit] = useState(false);
   const audioRef = useRef(null);
 
-  // Fetch ideas on mount
+  // Fetch ideas + B-Roll manifest on mount
   useEffect(() => {
     fetchAIideas();
     fetchVideoIdeas();
+    fetch('/broll/manifest.json')
+      .then(r => r.json())
+      .then(data => {
+        setBrollList(data);
+        if (data.length > 0) setActiveBroll(data[0].file);
+      })
+      .catch(() => setBrollList([]));
   }, []);
 
   const fetchVideoIdeas = async () => {
@@ -566,11 +574,19 @@ export default function App() {
             </div>
             
             <label style={{ color: 'white', fontSize: '13px', display: 'block', marginBottom: '8px' }}>اختر خلفية الفيديو (B-Roll):</label>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                <button onClick={() => setActiveBroll('/broll/broll1.mp4')} style={{ flex: 1, padding: '8px', background: activeBroll === '/broll/broll1.mp4' ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>💻 ماك بوك</button>
-                <button onClick={() => setActiveBroll('/broll/broll2.mp4')} style={{ flex: 1, padding: '8px', background: activeBroll === '/broll/broll2.mp4' ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>🌳 عمل بالخارج</button>
-                <button onClick={() => setActiveBroll('/broll/broll3.mp4')} style={{ flex: 1, padding: '8px', background: activeBroll === '/broll/broll3.mp4' ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px' }}>☕ قهوة ومكتب</button>
-            </div>
+            {brollList.length > 0 ? (
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                {brollList.map((v, i) => (
+                  <button key={i} onClick={() => setActiveBroll(v.file)} style={{ flex: '1 0 auto', minWidth: '110px', padding: '8px', background: activeBroll === v.file ? '#f59e0b' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px' }}>
+                    🎬 {v.name} <span style={{ display: 'block', fontSize: '10px', color: '#94a3b8' }}>({v.size})</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', marginBottom: '15px', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: '13px' }}>
+                📂 المجلد فارغ! ضع ملفات MP4 في <code>public/broll/</code> ثم أعد البناء.
+              </div>
+            )}
             
             <div style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px', marginBottom: '20px', border: '1px dashed rgba(255,255,255,0.2)' }}>
                 <label style={{ display: 'block', color: 'white', fontSize: '12px', marginBottom: '5px' }}>أو ارفع مقطعك الخاص (بدون حقوق):</label>
