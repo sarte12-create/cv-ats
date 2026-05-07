@@ -703,3 +703,28 @@ button:active {
     transform: scale(0.28) !important;
   }
 }
+
+/* === Mobile Responsive Layout === */
+@media (max-width: 900px) {
+  .dashboard-layout {
+    flex-direction: column;
+    height: auto;
+  }
+  .sidebar {
+    width: 100% !important;
+    height: auto;
+    border-left: none;
+    border-bottom: 1px solid var(--glass-border);
+    padding: 1rem;
+  }
+  .preview-area {
+    min-height: auto;
+    padding: 1rem;
+  }
+  .video-canvas-mockup {
+    width: 100% !important;
+    max-width: 360px;
+    height: auto !important;
+    aspect-ratio: 9/16;
+  }
+}

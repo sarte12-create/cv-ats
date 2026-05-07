@@ -53,13 +53,27 @@ export default function App() {
   const [activeBroll, setActiveBroll] = useState('');
   const [brollList, setBrollList] = useState([]);
   const premiumVideoRef = useRef(null);
-  const [showGrowthKit, setShowGrowthKit] = useState(false);
   const audioRef = useRef(null);
+  const [productionCount, setProductionCount] = useState(() => parseInt(localStorage.getItem('seartk_production_count') || '0'));
+  
+  const incrementProduction = () => {
+    const newCount = productionCount + 1;
+    setProductionCount(newCount);
+    localStorage.setItem('seartk_production_count', String(newCount));
+  };
 
   // Fetch ideas + B-Roll manifest on mount
   useEffect(() => {
-    fetchAIideas();
-    fetchVideoIdeas();
+    // Load cached ideas from localStorage first
+    const cachedCarousel = localStorage.getItem('seartk_carousel_ideas');
+    const cachedVideo = localStorage.getItem('seartk_video_ideas');
+    if (cachedCarousel) setSuggestedIdeas(JSON.parse(cachedCarousel));
+    if (cachedVideo) setSuggestedVideoIdeas(JSON.parse(cachedVideo));
+    
+    // Only fetch new ideas if cache is empty
+    if (!cachedCarousel) fetchAIideas();
+    if (!cachedVideo) fetchVideoIdeas();
+    
     fetch('/broll/manifest.json')
       .then(r => r.json())
       .then(data => {
@@ -113,6 +127,7 @@ ${categoriesList}
       const rawText = result.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
       const res = JSON.parse(rawText);
       setSuggestedVideoIdeas(res);
+      localStorage.setItem('seartk_video_ideas', JSON.stringify(res));
     } catch (e) {
       console.error(e);
     }
@@ -143,6 +158,7 @@ ${categoriesList}
       const rawText = result.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
       const res = JSON.parse(rawText);
       setSuggestedIdeas(res);
+      localStorage.setItem('seartk_carousel_ideas', JSON.stringify(res));
     } catch (e) {
       console.error(e);
       alert("الخطأ من Gemini: " + e.message);
@@ -252,6 +268,7 @@ ${categoriesList}
             a.href = url;
             a.download = `Premium_Reel_${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
             a.click();
+            incrementProduction();
             setLoading(false);
             setLoadingMsg("");
         };
@@ -478,6 +495,7 @@ ${categoriesList}
             a.href = url;
             a.download = `seartk_reel_${Date.now()}.webm`;
             a.click();
+            incrementProduction();
             setLoading(false);
             setLoadingMsg("");
         };
@@ -530,6 +548,7 @@ ${categoriesList}
         a.href = dataUrl;
         a.download = `slide-${index + 1}.png`;
         a.click();
+        incrementProduction();
       } catch (error) {
         console.error("Error generating image", error);
       }
@@ -537,49 +556,12 @@ ${categoriesList}
   };
 
   return (
-    <>
-      {showGrowthKit && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(5px)' }}>
-          <div style={{ background: '#1e293b', padding: '30px', borderRadius: '20px', maxWidth: '500px', width: '90%', border: '1px solid #3b82f6', boxShadow: '0 10px 40px rgba(59,130,246,0.3)', color: 'white' }}>
-            <h2 style={{ color: '#3b82f6', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>🎁 حزمة تيك توك السرية (جاهزة)</h2>
-            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '20px' }}>لأنك لا تريد البحث، جهزت لك أفضل المصادر المجانية لتحميل مقاطع الخلفيات (ASMR، رمل، GTA) بدون حقوق لتستخدمها مع قالب الكروما 🟩:</p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
-              <a href="https://www.tiktok.com/@satisfying.video.bg" target="_blank" rel="noreferrer" style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', textDecoration: 'none', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'block' }}>
-                <span style={{ fontSize: '18px', marginRight: '10px' }}>📱</span>
-                <b>حساب تيك توك 1:</b> مقاطع رمل وصابون
-              </a>
-              <a href="https://www.tiktok.com/@gta.parkour.bg" target="_blank" rel="noreferrer" style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', textDecoration: 'none', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'block' }}>
-                <span style={{ fontSize: '18px', marginRight: '10px' }}>🚗</span>
-                <b>حساب تيك توك 2:</b> مقاطع GTA 5
-              </a>
-              <a href="https://www.youtube.com/results?search_query=satisfying+vertical+video+background+no+copyright" target="_blank" rel="noreferrer" style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', textDecoration: 'none', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'block' }}>
-                <span style={{ fontSize: '18px', marginRight: '10px' }}>📺</span>
-                <b>يوتيوب:</b> آلاف المقاطع الطويلة الجاهزة للقص
-              </a>
-            </div>
-
-            <div style={{ background: 'rgba(16,185,129,0.1)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.3)', marginBottom: '20px' }}>
-              <b style={{ color: '#10b981' }}>💡 كيف أستخدمها؟</b>
-              <ol style={{ margin: 0, paddingLeft: '20px', marginTop: '10px', fontSize: '13px', lineHeight: '1.6' }}>
-                <li>حمّل مقطع واحد مدته دقيقة من الروابط أعلاه.</li>
-                <li>استخدم أداة سيرتك لإنشاء الفيديو بقالب "كروما 🟩" وحمله.</li>
-                <li>افتح تطبيق CapCut بالجوال.</li>
-                <li>ضع مقطع الـ GTA/ASMR، ثم أضف فيديو سيرتك فوقه كـ (Overlay).</li>
-                <li>استخدم أداة Chroma Key في CapCut لمسح اللون الأخضر. (العملية كلها تأخذ 15 ثانية فقط!)</li>
-              </ol>
-            </div>
-
-            <button onClick={() => setShowGrowthKit(false)} style={{ width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>فهمت، شكراً! 👍</button>
-          </div>
-        </div>
-      )}
     <div className="dashboard-layout">
       {/* SIDEBAR: CONTROLS */}
       <div className="sidebar" style={{ width: '450px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h2 style={{ color: 'var(--primary-color)' }}>مصنع محتوى @seartk3 🏭</h2>
-          <button onClick={() => setShowGrowthKit(true)} style={{ background: 'linear-gradient(135deg, #10b981, #3b82f6)', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)', animation: 'pulse 2s infinite' }}>🎁 حزمة الفايرل</button>
+          <h2 style={{ color: 'var(--primary-color)', fontSize: '18px' }}>مصنع محتوى @seartk3 🏭</h2>
+          <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>📊 {productionCount} قطعة</span>
         </div>
         
         {/* APP MODE TOGGLE */}
@@ -637,7 +619,21 @@ ${categoriesList}
                 }} style={{ color: 'white', fontSize: '12px', width: '100%' }} />
             </div>
 
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '10px' }}>اكتب فكرة التغريدة/النصيحة:</p>
+            <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '15px 0' }} />
+
+            <div style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ color: '#94a3b8', fontSize: '11px' }}>أفكار تغريدات جاهزة (اضغط لاختيار):</span>
+                <button onClick={fetchVideoIdeas} disabled={loading} style={{ width: 'auto', padding: '3px 10px', fontSize: '11px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '6px', color: '#f59e0b', cursor: 'pointer' }}>🔄 تجديد</button>
+              </div>
+              {contentPillars.slice(0, 5).sort(() => Math.random() - 0.5).map((p, idx) => (
+                <div key={idx} style={{ marginBottom: '8px', padding: '8px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', fontSize: '12px' }} onClick={() => setPremiumTopic(p.angle)}>
+                  <span style={{ color: '#f59e0b' }}>{p.cat}</span>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '10px' }}>أو اكتب فكرتك الخاصة:</p>
             <input type="text" value={premiumTopic} onChange={(e) => setPremiumTopic(e.target.value)} placeholder="مثال: أهمية الكلمات المفتاحية في السيرة..." className="glass-input" />
             
             <button className="glass-button" onClick={generatePremiumTweet} disabled={loading} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', width: '100%', marginBottom: '15px' }}>
@@ -877,7 +873,7 @@ ${categoriesList}
                           <>
                             <div className="li-header">
                               <div className="li-user-info">
-                                <img src="/logo.png" className="li-avatar" alt="Avatar" />
+                                <div className="li-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', background: 'linear-gradient(135deg, #0077b5, #00a0dc)' }}>💼</div>
                                 <div className="li-name-container">
                                   <div className="li-name-row">
                                     <span className="li-name">سيرتك علينا</span>
@@ -916,7 +912,7 @@ ${categoriesList}
                           <div className="social-mockup">
                             <div className="social-header">
                               <div className="social-avatar">
-                                <img src="/logo.png" alt="CV" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>💼</div>
                               </div>
                               <div>
                                 <div className="social-author-name">سيرتك علينا <span style={{color: '#3b82f6'}}>✔️</span></div>
@@ -1040,7 +1036,7 @@ ${categoriesList}
                   {bgColor === 'theme-tweet' ? (
                     <div style={{ background: '#1e293b', width: '85%', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <img src="/logo.png" style={{ width: '48px', height: '48px', borderRadius: '50%' }} alt="Avatar" />
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>💼</div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                           <span style={{ color: 'white', fontWeight: 'bold', fontSize: '16px' }}>سيرتك علينا ✔️</span>
                           <span style={{ color: '#94a3b8', fontSize: '14px' }}>@seartk3</span>
@@ -1099,7 +1095,7 @@ ${categoriesList}
                   {!isPlaying && (
                       <div className="video-bottom-overlay">
                         <div className="video-user-details">
-                          <img src="/logo.png" style={{width: 50, height: 50, borderRadius: '50%'}} alt="Logo" />
+                          <div style={{width: 50, height: 50, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px'}}>💼</div>
                           <span>سيرتك علينا ✔️</span>
                         </div>
                         <div className="video-sound">🎵 الصوت الأصلي - سيرتك علينا</div>
@@ -1122,6 +1118,5 @@ ${categoriesList}
         )}
       </div>
     </div>
-    </>
   );
 }
