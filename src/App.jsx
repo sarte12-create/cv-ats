@@ -995,71 +995,70 @@ ${categoriesList}
                   {/* B-Roll Background */}
                   <video src={activeBroll} autoPlay loop muted playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                   
-                  {/* Content Overlay */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '20px', gap: '12px', paddingTop: '40px' }}>
+                  {/* Content Overlay - Safe zone: paddingRight for TikTok/IG buttons */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '15px', paddingRight: '55px', paddingTop: '20px', gap: '10px' }}>
                     
-                    {/* Hook - always visible when playing or currentLine >= -1 */}
+                    {/* Hook - white bg, black text */}
                     {(isPlaying || videoScript) && currentLine >= -1 && (
                       <div style={{ 
-                        background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
-                        padding: '16px 20px', borderRadius: '14px', 
-                        color: 'white', fontSize: '20px', fontWeight: '800', 
-                        lineHeight: '1.4', textAlign: 'right',
-                        textShadow: '0 2px 8px rgba(0,0,0,0.6)',
-                        animation: 'fadeInUp 0.4s ease'
+                        background: 'rgba(255,255,255,0.95)',
+                        padding: '14px 18px', borderRadius: '12px', 
+                        color: '#1a1a1a', fontSize: '18px', fontWeight: '900', 
+                        lineHeight: '1.5', textAlign: 'right',
+                        animation: 'fadeInUp 0.4s ease',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
                       }}>
                         {videoScript.hook}
                       </div>
                     )}
                     
-                    {/* Numbered Tips - stack one by one */}
-                    {videoScript.tips.map((tip, i) => (
-                      currentLine >= i && (
-                        <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', animation: 'fadeInUp 0.4s ease' }}>
+                    {/* Numbered Tips - alternating colors */}
+                    {videoScript.tips.map((tip, i) => {
+                      const tipColors = [
+                        { bg: 'rgba(245,158,11,0.92)', circle: '#f59e0b' },
+                        { bg: 'rgba(6,182,212,0.92)', circle: '#06b6d4' },
+                        { bg: 'rgba(245,158,11,0.92)', circle: '#f59e0b' },
+                        { bg: 'rgba(6,182,212,0.92)', circle: '#06b6d4' },
+                        { bg: 'rgba(168,85,247,0.92)', circle: '#a855f7' },
+                      ];
+                      const c = tipColors[i % tipColors.length];
+                      return currentLine >= i && (
+                        <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', animation: 'fadeInUp 0.4s ease', flexDirection: 'row-reverse' }}>
                           <div style={{ 
-                            minWidth: '36px', height: '36px', borderRadius: '50%', 
-                            background: '#f59e0b', color: 'white', 
+                            minWidth: '34px', height: '34px', borderRadius: '50%', 
+                            background: c.circle, color: 'white', 
                             display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                            fontSize: '18px', fontWeight: '900', flexShrink: 0,
-                            boxShadow: '0 4px 10px rgba(245,158,11,0.4)'
+                            fontSize: '17px', fontWeight: '900', flexShrink: 0,
+                            boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
                           }}>
                             {i + 1}
                           </div>
                           <div style={{ 
-                            background: 'rgba(245,158,11,0.9)', 
+                            background: c.bg, 
                             padding: '10px 14px', borderRadius: '10px', 
-                            color: 'white', fontSize: '15px', fontWeight: '700', 
+                            color: 'white', fontSize: '14px', fontWeight: '700', 
                             lineHeight: '1.4', textAlign: 'right', flex: 1,
-                            textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                            textShadow: '0 1px 3px rgba(0,0,0,0.2)'
                           }}>
                             {tip}
                           </div>
                         </div>
-                      )
-                    ))}
+                      );
+                    })}
                     
-                    {/* CTA - appears last */}
+                    {/* CTA - green, part of the flow (not pushed to bottom) */}
                     {currentLine >= videoScript.tips.length && (
                       <div style={{ 
-                        background: 'rgba(239,68,68,0.9)', 
-                        padding: '12px 16px', borderRadius: '10px', 
-                        color: 'white', fontSize: '15px', fontWeight: '800', 
-                        textAlign: 'center', marginTop: 'auto', marginBottom: '20px',
+                        background: 'rgba(16,185,129,0.95)', 
+                        padding: '14px 18px', borderRadius: '12px', 
+                        color: 'white', fontSize: '14px', fontWeight: '800', 
+                        textAlign: 'center', marginTop: '8px',
                         animation: 'fadeInUp 0.4s ease',
-                        boxShadow: '0 4px 15px rgba(239,68,68,0.4)'
+                        boxShadow: '0 4px 15px rgba(16,185,129,0.4)'
                       }}>
                         {videoScript.cta}
                       </div>
                     )}
-                  </div>
-
-                  {/* Bottom Branding */}
-                  <div style={{ position: 'absolute', bottom: '12px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>💼</div>
-                      <span style={{ color: 'white', fontWeight: 'bold', fontSize: '13px', textShadow: '0 2px 6px rgba(0,0,0,0.8)' }}>@seartk3</span>
-                    </div>
-                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>🎵 صوت أصلي</span>
                   </div>
                 </div>
               </div>
