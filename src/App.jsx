@@ -333,28 +333,30 @@ ${categoriesList}
   const generateVideoScript = async () => {
     if (!videoTopic) return;
     setLoading(true);
-    setLoadingMsg("جاري كتابة السكربت السينمائي والخطاف بالذكاء الاصطناعي...");
+    setLoadingMsg("جاري كتابة السكربت بأسلوب النصائح المتراكمة...");
     try {
-      const prompt = `أنت صانع محتوى "ترند القراءة الصامتة" في تيك توك بالسعودية. حسابك متخصص في التوظيف والمسار المهني.
-      الموضوع: "${videoTopic}". 
-      
-      شروط كتابة السكربت:
-      1. الخطاف (Hook): صادم، مستفز، أو يكشف سراً. لا تبدأ بـ "هل تعلم" أبداً.
-      2. لا تكتب جملاً طويلة! كل سطر 3-6 كلمات فقط.
-      3. الإيموجي بذكاء: إيموجي واحد في السطور المهمة فقط. الباقي بدون.
-      4. لا تكرر كلمة "ATS" أكثر من مرة واحدة في السكربت كله.
-      5. ركز على الموضوع المطلوب مباشرة، لا تحوله لموضوع ATS إذا لم يكن كذلك.
-      6. الخاتمة: دعوة للتواصل عبر رابط البايو أو الخاص.
-      
-      رد بـ JSON فقط:
-      {"lines": ["سطر 1", "سطر 2", ...]}`;
+      const prompt = `أنت صانع محتوى ريلز سعودي متخصص في التوظيف والمسار المهني. حسابك @seartk3.
+الموضوع: "${videoTopic}".
+
+اكتب سكربت ريلز بأسلوب "النصائح المتراكمة" (Stacking Tips):
+- hook: سؤال أو عبارة خطاف قوية تظهر في البداية (سطر أو سطرين فقط)
+- tips: 4-5 نصائح مرقمة قصيرة (كل نصيحة جملة واحدة مختصرة)
+- cta: خاتمة (تابعنا / سوي لايك / تواصل معنا)
+
+الشروط:
+- لا تذكر ATS أكثر من مرة.
+- النصائح قصيرة وعملية.
+- لا تستخدم إيموجي طفولية.
+
+رد بـ JSON فقط:
+{"hook":"الخطاف","tips":["نصيحة 1","نصيحة 2","نصيحة 3","نصيحة 4"],"cta":"الخاتمة"}`;
       const result = await executeWithFallback(prompt);
       const rawText = result.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
       const res = JSON.parse(rawText);
-      setVideoScript(res.lines);
+      setVideoScript(res);
     } catch (e) {
       console.error(e);
-      alert("الخطأ من Gemini في السيناريو: " + e.message);
+      alert("الخطأ من Gemini: " + e.message);
     }
     setLoading(false);
   };
@@ -401,118 +403,72 @@ ${categoriesList}
   }
 
   const playVideo = async () => {
-    if (!videoScript || videoScript.length === 0) {
-        alert("⚠️ عذراً! يجب عليك توليد سكربت الفيديو أولاً من خلال الضغط على زر 'صناعة سكربت فايرل' باللون الأزرق في الأعلى.");
+    if (!videoScript || !videoScript.hook) {
+        alert("⚠️ يجب توليد السكربت أولاً.");
         return;
     }
-
-    setLoadingMsg("جاري تجهيز العرض السينمائي السريع...");
-    setLoading(true);
-    
-    try {
-        // We simulate a quick loading phase for UI consistency
-        await new Promise(r => setTimeout(r, 500));
-        
-        setLoading(false);
-        setIsPlaying(true);
-        setCurrentLine(0);
-        
-        const playNext = (index) => {
-            if (index >= videoScript.length) {
-                setIsPlaying(false);
-                return;
-            }
-            setCurrentLine(index);
-            
-            // Dynamic reading speed: ~60ms per character, minimum 800ms for fast TikTok pace
-            const duration = Math.max(800, videoScript[index].length * 60);
-            
-            // Store the timeout ID so we can clear it if stopped
-            audioRef.current = setTimeout(() => playNext(index + 1), duration);
-        }
-        playNext(0);
-        
-    } catch(e) {
-        setLoading(false);
-        setIsPlaying(false);
-        alert(e.message);
-    }
-  };
-
-  const stopVideo = () => {
-    if (audioRef.current) {
-        clearTimeout(audioRef.current);
+    setIsPlaying(true);
+    setCurrentLine(-1); // -1 = hook
+    const totalSteps = videoScript.tips.length + 2; // hook + tips + cta
+    for (let i = -1; i < videoScript.tips.length + 1; i++) {
+      setCurrentLine(i);
+      await new Promise(r => { audioRef.current = setTimeout(r, i === -1 ? 3000 : 2000); });
     }
     setIsPlaying(false);
   };
 
-  const startRecordingMode = async () => {
-    if (!videoScript || videoScript.length === 0) {
-        alert("⚠️ عذراً! يجب توليد السكربت أولاً.");
-        return;
-    }
-    const container = document.getElementById('video-export-container');
-    if (!container) return;
+  const stopVideo = () => {
+    if (audioRef.current) clearTimeout(audioRef.current);
+    setIsPlaying(false);
+    setCurrentLine(-1);
+  };
 
+  const exportStackingVideo = async () => {
+    if (!videoScript || !videoScript.hook) { alert("ولد السكربت أولاً!"); return; }
     setLoading(true);
-    setLoadingMsg("جاري تصوير وتجميع الفيديو... يرجى الانتظار ⏳");
-
+    setLoadingMsg("جاري دمج الفيديو مع النصائح... ⏳");
     try {
-        const frames = [];
-        const oldIsPlaying = isPlaying;
-        setIsPlaying(true); 
-        
-        for(let i=0; i<videoScript.length; i++) {
-            setCurrentLine(i);
-            await new Promise(r => setTimeout(r, 100));
-            
-            const dataCanvas = await htmlToImage.toCanvas(container, {
-                pixelRatio: 2,
-                backgroundColor: bgColor || '#0f172a'
-            });
-            const duration = Math.max(800, videoScript[i].length * 60);
-            frames.push({ canvas: dataCanvas, duration });
-        }
-        
-        setIsPlaying(oldIsPlaying);
-        setCurrentLine(0);
-
-        const videoCanvas = document.createElement('canvas');
-        videoCanvas.width = frames[0].canvas.width;
-        videoCanvas.height = frames[0].canvas.height;
-        const ctx = videoCanvas.getContext('2d');
-        
-        const stream = videoCanvas.captureStream(30);
-        const options = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? { mimeType: 'video/webm;codecs=vp9' } : { mimeType: 'video/webm' };
-        const recorder = new MediaRecorder(stream, options);
-        
-        const chunks = [];
-        recorder.ondataavailable = e => chunks.push(e.data);
-        recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `seartk_reel_${Date.now()}.webm`;
-            a.click();
-            incrementProduction();
-            setLoading(false);
-            setLoadingMsg("");
-        };
-        
-        recorder.start();
-        
-        for(let i=0; i<frames.length; i++) {
-            ctx.drawImage(frames[i].canvas, 0, 0);
-            await new Promise(r => setTimeout(r, frames[i].duration));
-        }
-        recorder.stop();
-        
+      const mockup = document.getElementById('reels-stacking-preview');
+      if (!mockup) throw new Error('المعاينة غير موجودة');
+      // Capture each state
+      const frames = [];
+      setIsPlaying(true);
+      // Hook frame
+      setCurrentLine(-1);
+      await new Promise(r => setTimeout(r, 200));
+      frames.push({ canvas: await htmlToImage.toCanvas(mockup, { pixelRatio: 2 }), duration: 3000 });
+      // Tips frames (stacking)
+      for (let i = 0; i < videoScript.tips.length; i++) {
+        setCurrentLine(i);
+        await new Promise(r => setTimeout(r, 200));
+        frames.push({ canvas: await htmlToImage.toCanvas(mockup, { pixelRatio: 2 }), duration: 2000 });
+      }
+      // CTA frame
+      setCurrentLine(videoScript.tips.length);
+      await new Promise(r => setTimeout(r, 200));
+      frames.push({ canvas: await htmlToImage.toCanvas(mockup, { pixelRatio: 2 }), duration: 2000 });
+      setIsPlaying(false);
+      setCurrentLine(-1);
+      // Record
+      const vc = document.createElement('canvas');
+      vc.width = frames[0].canvas.width; vc.height = frames[0].canvas.height;
+      const ctx = vc.getContext('2d');
+      const stream = vc.captureStream(30);
+      const mimeOpts = MediaRecorder.isTypeSupported('video/mp4') ? {mimeType:'video/mp4'} : MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? {mimeType:'video/webm;codecs=vp9'} : {mimeType:'video/webm'};
+      const rec = new MediaRecorder(stream, mimeOpts);
+      const chunks = [];
+      rec.ondataavailable = e => chunks.push(e.data);
+      rec.onstop = () => {
+        const blob = new Blob(chunks, {type: mimeOpts.mimeType});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `seartk_reel_${Date.now()}.${mimeOpts.mimeType.includes('mp4')?'mp4':'webm'}`;
+        a.click(); incrementProduction(); setLoading(false); setLoadingMsg('');
+      };
+      rec.start();
+      for (const f of frames) { ctx.drawImage(f.canvas, 0, 0); await new Promise(r => setTimeout(r, f.duration)); }
+      rec.stop();
     } catch(e) {
-        console.error("Video export error:", e);
-        alert("متصفحك لا يدعم تصوير الفيديو مباشرة، يرجى استخدام متصفح كروم أو جهاز كمبيوتر.");
-        setLoading(false);
-        setIsPlaying(false);
+      console.error(e); alert('فشل التصدير: ' + (e?.message || '')); setLoading(false); setIsPlaying(false);
     }
   };
 
@@ -780,49 +736,66 @@ ${categoriesList}
             )}
           </>
         ) : (
-          /* VIDEO MODE SIDEBAR */
+          /* VIDEO MODE SIDEBAR - STACKING TIPS */
           <div className="glass-panel" style={{ marginBottom: '20px' }}>
-            <h3 style={{ marginBottom: '10px', color: 'white', display: 'flex', justifyContent: 'space-between' }}>
-                <span>🎥 صانع الفيديوهات القصيرة</span>
-                <button onClick={fetchVideoIdeas} disabled={loading} style={{ width: 'auto', padding: '5px 15px', fontSize: '12px' }}>🔄 تجديد الأفكار</button>
+            <h3 style={{ marginBottom: '10px', color: '#e92a67', display: 'flex', justifyContent: 'space-between' }}>
+                <span>🎬 ريلز النصائح المتراكمة</span>
+                <button onClick={fetchVideoIdeas} disabled={loading} style={{ width: 'auto', padding: '5px 15px', fontSize: '12px' }}>🔄 تجديد</button>
             </h3>
-            
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '8px' }}>أفكار جاهزة:</div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '15px' }}>
+              هوك ← نصائح تتراكم ← CTA. نفس الأسلوب الفايرل!
+            </p>
+
+            <label style={{ color: 'white', fontSize: '12px', display: 'block', marginBottom: '6px' }}>خلفية الفيديو:</label>
+            {brollList.length > 0 && (
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                {brollList.map((v, i) => (
+                  <button key={i} onClick={() => setActiveBroll(v.file)} style={{ padding: '5px 8px', background: activeBroll === v.file ? '#e92a67' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '10px' }}>
+                    🎬 {v.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <input type="file" accept="video/*" onChange={(e) => { if(e.target.files?.[0]) setActiveBroll(URL.createObjectURL(e.target.files[0])); }} style={{ color: 'white', fontSize: '11px', width: '100%', marginBottom: '15px' }} />
+
+            <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '10px 0' }} />
+
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '6px' }}>أفكار جاهزة:</div>
               {suggestedVideoIdeas.map((idea, idx) => (
-                <div key={idx} style={{ marginBottom: '10px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }} onClick={() => { setVideoTopic(idea.title); generateVideoScript(); }}>
-                  <div style={{ fontWeight: 'bold', color: '#e92a67', marginBottom: '5px' }}>{idea.title}</div>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>{idea.description}</div>
+                <div key={idx} style={{ marginBottom: '6px', padding: '6px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', fontSize: '11px' }} onClick={() => setVideoTopic(idea.title)}>
+                  <span style={{ color: '#e92a67' }}>{idea.title}</span>
                 </div>
               ))}
             </div>
 
-            <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '15px 0' }} />
-
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '10px' }}>أو اكتب فكرتك الخاصة:</p>
-            <input type="text" value={videoTopic} onChange={(e) => setVideoTopic(e.target.value)} placeholder="مثال: كيف تتجاوز نظام الفرز الآلي..." className="glass-input" />
+            <input type="text" value={videoTopic} onChange={(e) => setVideoTopic(e.target.value)} placeholder="أو اكتب فكرتك الخاصة..." className="glass-input" />
+            <button className="glass-button" onClick={generateVideoScript} disabled={loading} style={{ background: 'linear-gradient(135deg, #e92a67, #be123c)', width: '100%', marginTop: '8px' }}>
+              ✨ {loading ? "جاري التأليف..." : "توليد السكربت"}
+            </button>
             
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-              <button className="glass-button" onClick={generateVideoScript} disabled={loading} style={{ flex: 2, background: 'linear-gradient(135deg, #e92a67, #be123c)' }}>✨ {loading ? "جاري التأليف..." : "توليد السكربت"}</button>
-              <button className="glass-button" onClick={() => setShowGrowthKit(true)} style={{ flex: 1, background: '#3b82f6', fontSize: '12px', padding: '5px' }}>🎁 مكتبة الخلفيات</button>
-            </div>
-            
-            {videoScript && (
-              <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
-                <h4 style={{ color: '#e92a67', marginBottom: '10px' }}>السكربت المولد:</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {videoScript.map((line, i) => (
-                    <input key={i} value={line} onChange={(e) => { const newScript = [...videoScript]; newScript[i] = e.target.value; setVideoScript(newScript); }} className="glass-input" style={{ padding: '8px', fontSize: '13px', borderLeft: `3px solid ${i === 0 ? '#10b981' : '#3b82f6'}` }} />
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                  <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
-                    {isPlaying ? "🎬 قيد العرض..." : "▶️ تشغيل (للمعاينة)"}
+            {videoScript && videoScript.hook && (
+              <div style={{ marginTop: '15px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
+                <h4 style={{ color: '#e92a67', marginBottom: '8px', fontSize: '13px' }}>تعديل السكربت:</h4>
+                <label style={{ color: '#10b981', fontSize: '11px' }}>الخطاف:</label>
+                <input value={videoScript.hook} onChange={(e) => setVideoScript({...videoScript, hook: e.target.value})} className="glass-input" style={{ marginBottom: '8px', borderRight: '3px solid #10b981' }} />
+                <label style={{ color: '#f59e0b', fontSize: '11px' }}>النصائح:</label>
+                {videoScript.tips.map((tip, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '5px', marginBottom: '5px', alignItems: 'center' }}>
+                    <span style={{ color: '#f59e0b', fontWeight: 'bold', minWidth: '18px', fontSize: '12px' }}>{i+1}</span>
+                    <input value={tip} onChange={(e) => { const t = [...videoScript.tips]; t[i] = e.target.value; setVideoScript({...videoScript, tips: t}); }} className="glass-input" style={{ padding: '5px', fontSize: '11px', borderRight: '3px solid #f59e0b' }} />
+                  </div>
+                ))}
+                <label style={{ color: '#ef4444', fontSize: '11px', marginTop: '6px', display: 'block' }}>الخاتمة:</label>
+                <input value={videoScript.cta} onChange={(e) => setVideoScript({...videoScript, cta: e.target.value})} className="glass-input" style={{ marginBottom: '12px', borderRight: '3px solid #ef4444' }} />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '10px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>
+                    {isPlaying ? "🎬 عرض..." : "▶️ معاينة"}
                   </button>
-                  <button onClick={startRecordingMode} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(59,130,246,0.3)' }}>
-                    📥 وضع تسجيل الشاشة
+                  <button onClick={exportStackingVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '10px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>
+                    ⬇️ تصدير فيديو
                   </button>
-                  {isPlaying && <button onClick={stopVideo} style={{ padding: '12px', background: '#dc2626', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>⏹️ إيقاف</button>}
+                  {isPlaying && <button onClick={stopVideo} style={{ padding: '10px', background: '#dc2626', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>⏹️</button>}
                 </div>
               </div>
             )}
@@ -1001,117 +974,94 @@ ${categoriesList}
             </div>
           </div>
         ) : (
-          /* VIDEO ENGINE PREVIEW */
+          /* STACKING TIPS REELS PREVIEW */
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '80vh' }}>
-            {!videoScript ? (
+            {!videoScript || !videoScript.hook ? (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                 <div style={{ fontSize: '64px', marginBottom: '20px' }}>🎬</div>
                 <h2>المشهد فارغ</h2>
-                <p>قم بتوليد سيناريو الفيديو من القائمة الجانبية لتبدأ المعاينة الصوتية</p>
+                <p>اختر فكرة وولّد السكربت لتبدأ المعاينة</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ width: '100%', marginBottom: '15px' }}>
-                  <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '8px', textAlign: 'center' }}>اختر قالب الفيديو (تصاميم احترافية للريلز):</div>
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                      <button onClick={() => setBgColor('theme-glass')} style={{ flex: 1, minWidth: '100px', padding: '8px', background: 'linear-gradient(135deg, #1e1b4b, #312e81)', borderRadius: '8px', color: 'white', border: bgColor === 'theme-glass' ? '2px solid white' : '1px solid #333' }}>زجاجي فاخر 🔮</button>
-                      <button onClick={() => setBgColor('theme-tweet')} style={{ flex: 1, minWidth: '100px', padding: '8px', background: '#0f172a', borderRadius: '8px', color: 'white', border: bgColor === 'theme-tweet' ? '2px solid white' : '1px solid #333' }}>تغريدة احترافية 🐦</button>
-                      <button onClick={() => setBgColor('theme-imessage')} style={{ flex: 1, minWidth: '100px', padding: '8px', background: '#000000', borderRadius: '8px', color: 'white', border: bgColor === 'theme-imessage' ? '2px solid white' : '1px solid #333' }}>رسالة آيفون 💬</button>
-                      <button onClick={() => setBgColor('#00ff00')} style={{ flex: 1, minWidth: '100px', padding: '8px', background: '#00ff00', borderRadius: '8px', color: 'black', fontWeight: 'bold', border: bgColor === '#00ff00' ? '2px solid white' : '1px solid #333' }}>كروما (مونتاج) 🟩</button>
-                  </div>
-                </div>
-                
                 <div 
-                  id="video-export-container" 
-                  className="video-canvas-mockup" 
+                  id="reels-stacking-preview"
                   style={{ 
-                    background: bgColor === 'theme-glass' ? 'linear-gradient(135deg, #0f172a, #312e81, #1e1b4b)' :
-                                bgColor === 'theme-tweet' ? '#0f172a' :
-                                bgColor === 'theme-imessage' ? '#000000' :
-                                bgColor || '#0f172a', 
-                    border: bgColor === '#00ff00' ? 'none' : '' 
+                    position: 'relative', width: '400px', height: '711px', 
+                    background: '#000', borderRadius: '20px', overflow: 'hidden', 
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)' 
                   }}
                 >
+                  {/* B-Roll Background */}
+                  <video src={activeBroll} autoPlay loop muted playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                   
-                  {bgColor === 'theme-tweet' ? (
-                    <div style={{ background: '#1e293b', width: '85%', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>💼</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                          <span style={{ color: 'white', fontWeight: 'bold', fontSize: '16px' }}>سيرتك علينا ✔️</span>
-                          <span style={{ color: '#94a3b8', fontSize: '14px' }}>@seartk3</span>
+                  {/* Content Overlay */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '20px', gap: '12px', paddingTop: '40px' }}>
+                    
+                    {/* Hook - always visible when playing or currentLine >= -1 */}
+                    {(isPlaying || videoScript) && currentLine >= -1 && (
+                      <div style={{ 
+                        background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
+                        padding: '16px 20px', borderRadius: '14px', 
+                        color: 'white', fontSize: '20px', fontWeight: '800', 
+                        lineHeight: '1.4', textAlign: 'right',
+                        textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                        animation: 'fadeInUp 0.4s ease'
+                      }}>
+                        {videoScript.hook}
+                      </div>
+                    )}
+                    
+                    {/* Numbered Tips - stack one by one */}
+                    {videoScript.tips.map((tip, i) => (
+                      currentLine >= i && (
+                        <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', animation: 'fadeInUp 0.4s ease' }}>
+                          <div style={{ 
+                            minWidth: '36px', height: '36px', borderRadius: '50%', 
+                            background: '#f59e0b', color: 'white', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            fontSize: '18px', fontWeight: '900', flexShrink: 0,
+                            boxShadow: '0 4px 10px rgba(245,158,11,0.4)'
+                          }}>
+                            {i + 1}
+                          </div>
+                          <div style={{ 
+                            background: 'rgba(245,158,11,0.9)', 
+                            padding: '10px 14px', borderRadius: '10px', 
+                            color: 'white', fontSize: '15px', fontWeight: '700', 
+                            lineHeight: '1.4', textAlign: 'right', flex: 1,
+                            textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                          }}>
+                            {tip}
+                          </div>
                         </div>
+                      )
+                    ))}
+                    
+                    {/* CTA - appears last */}
+                    {currentLine >= videoScript.tips.length && (
+                      <div style={{ 
+                        background: 'rgba(239,68,68,0.9)', 
+                        padding: '12px 16px', borderRadius: '10px', 
+                        color: 'white', fontSize: '15px', fontWeight: '800', 
+                        textAlign: 'center', marginTop: 'auto', marginBottom: '20px',
+                        animation: 'fadeInUp 0.4s ease',
+                        boxShadow: '0 4px 15px rgba(239,68,68,0.4)'
+                      }}>
+                        {videoScript.cta}
                       </div>
-                      <div style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', lineHeight: '1.4', textAlign: 'right' }}>
-                        {videoScript[currentLine]}
-                      </div>
-                      <div style={{ color: '#64748b', fontSize: '13px', marginTop: '10px' }}>
-                        {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute:'2-digit' })} · {new Date().toLocaleDateString('ar-SA')} · <b>1.2M</b> Views
-                      </div>
-                    </div>
-                  ) : bgColor === 'theme-imessage' ? (
-                    <div style={{ width: '100%', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      {currentLine > 0 && (
-                        <div style={{ alignSelf: 'flex-start', background: '#333333', color: 'white', padding: '12px 18px', borderRadius: '20px 20px 20px 4px', maxWidth: '75%', fontSize: '18px', marginBottom: '30px', opacity: 0.5 }}>
-                           {videoScript[currentLine - 1]}
-                        </div>
-                      )}
-                      <div style={{ alignSelf: 'flex-end', background: '#0b84ff', color: 'white', padding: '14px 20px', borderRadius: '20px 20px 4px 20px', maxWidth: '85%', fontSize: '26px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(11,132,255,0.4)', transition: 'all 0.3s ease' }}>
-                        {videoScript[currentLine]}
-                      </div>
-                    </div>
-                  ) : bgColor === 'theme-glass' ? (
-                    <div style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', width: '85%', padding: '40px 20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-                      {currentLine > 0 && (
-                        <div style={{ fontSize: '18px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', textAlign: 'center' }}>
-                          {videoScript[currentLine - 1]}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '38px', color: 'white', fontWeight: '900', textAlign: 'center', textShadow: '0 0 20px rgba(255,255,255,0.3)', lineHeight: '1.3' }}>
-                        {videoScript[currentLine]}
-                      </div>
-                    </div>
-                  ) : (
-                    // Default / Chroma / Old layout
-                    <div className="video-content-wrapper" style={{ justifyContent: 'center' }}>
-                      {currentLine > 0 && (
-                        <div className="video-text-line past-line">
-                          {videoScript[currentLine - 1]}
-                        </div>
-                      )}
-                      
-                      <div className="video-text-line active-line" style={{ fontSize: '42px' }}>
-                        {videoScript[currentLine]}
-                      </div>
-                      
-                      {currentLine < videoScript.length - 1 && (
-                        <div className="video-text-line future-line">
-                          {videoScript[currentLine + 1]}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {!isPlaying && (
-                      <div className="video-bottom-overlay">
-                        <div className="video-user-details">
-                          <div style={{width: 50, height: 50, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px'}}>💼</div>
-                          <span>سيرتك علينا ✔️</span>
-                        </div>
-                        <div className="video-sound">🎵 الصوت الأصلي - سيرتك علينا</div>
-                      </div>
-                  )}
-                </div>
+                    )}
+                  </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginTop: '15px', width: '100%', maxWidth: '400px' }}>
-                  <button onClick={playVideo} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: isPlaying ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
-                    {isPlaying ? "🎬 قيد العرض..." : "▶️ معاينة سريعة"}
-                  </button>
-                  <button onClick={startRecordingMode} disabled={isPlaying || loading} style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(59,130,246,0.3)' }}>
-                    ⬇️ حفظ كفيديو (WebM)
-                  </button>
+                  {/* Bottom Branding */}
+                  <div style={{ position: 'absolute', bottom: '12px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>💼</div>
+                      <span style={{ color: 'white', fontWeight: 'bold', fontSize: '13px', textShadow: '0 2px 6px rgba(0,0,0,0.8)' }}>@seartk3</span>
+                    </div>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>🎵 صوت أصلي</span>
+                  </div>
                 </div>
-                {isPlaying && <button onClick={stopVideo} style={{ marginTop: '10px', padding: '8px 20px', background: '#dc2626', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>⏹️ إيقاف</button>}
               </div>
             )}
           </div>
