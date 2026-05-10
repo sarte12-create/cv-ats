@@ -995,15 +995,16 @@ ${categoriesList}
                   {/* B-Roll Background */}
                   <video src={activeBroll} autoPlay loop muted playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                   
-                  {/* Content Overlay - Safe zone: paddingRight for TikTok/IG buttons */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '15px', paddingRight: '55px', paddingTop: '20px', gap: '10px' }}>
+                  {/* Content Overlay - TikTok/IG Safe Zones */}
+                  {/* Top 80px = status bar + search. Bottom 130px = username + music. Right 55px = buttons */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '15px', paddingRight: '55px', paddingTop: '80px', paddingBottom: '130px', gap: '9px' }}>
                     
-                    {/* Hook - white bg, black text */}
-                    {(isPlaying || videoScript) && currentLine >= -1 && (
+                    {/* Hook - ONLY shows at start, then disappears */}
+                    {currentLine === -1 && (
                       <div style={{ 
                         background: 'rgba(255,255,255,0.95)',
-                        padding: '14px 18px', borderRadius: '12px', 
-                        color: '#1a1a1a', fontSize: '18px', fontWeight: '900', 
+                        padding: '14px 16px', borderRadius: '12px', 
+                        color: '#1a1a1a', fontSize: '17px', fontWeight: '900', 
                         lineHeight: '1.5', textAlign: 'right',
                         animation: 'fadeInUp 0.4s ease',
                         boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
@@ -1012,8 +1013,8 @@ ${categoriesList}
                       </div>
                     )}
                     
-                    {/* Numbered Tips - alternating colors */}
-                    {videoScript.tips.map((tip, i) => {
+                    {/* Numbered Tips - appear AFTER hook disappears, stack up */}
+                    {currentLine >= 0 && videoScript.tips.map((tip, i) => {
                       const tipColors = [
                         { bg: 'rgba(245,158,11,0.92)', circle: '#f59e0b' },
                         { bg: 'rgba(6,182,212,0.92)', circle: '#06b6d4' },
@@ -1025,18 +1026,18 @@ ${categoriesList}
                       return currentLine >= i && (
                         <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', animation: 'fadeInUp 0.4s ease', flexDirection: 'row-reverse' }}>
                           <div style={{ 
-                            minWidth: '34px', height: '34px', borderRadius: '50%', 
+                            minWidth: '32px', height: '32px', borderRadius: '50%', 
                             background: c.circle, color: 'white', 
                             display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                            fontSize: '17px', fontWeight: '900', flexShrink: 0,
+                            fontSize: '16px', fontWeight: '900', flexShrink: 0,
                             boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
                           }}>
                             {i + 1}
                           </div>
                           <div style={{ 
                             background: c.bg, 
-                            padding: '10px 14px', borderRadius: '10px', 
-                            color: 'white', fontSize: '14px', fontWeight: '700', 
+                            padding: '9px 13px', borderRadius: '10px', 
+                            color: 'white', fontSize: '13px', fontWeight: '700', 
                             lineHeight: '1.4', textAlign: 'right', flex: 1,
                             textShadow: '0 1px 3px rgba(0,0,0,0.2)'
                           }}>
@@ -1046,13 +1047,13 @@ ${categoriesList}
                       );
                     })}
                     
-                    {/* CTA - green, part of the flow (not pushed to bottom) */}
+                    {/* CTA */}
                     {currentLine >= videoScript.tips.length && (
                       <div style={{ 
                         background: 'rgba(16,185,129,0.95)', 
-                        padding: '14px 18px', borderRadius: '12px', 
-                        color: 'white', fontSize: '14px', fontWeight: '800', 
-                        textAlign: 'center', marginTop: '8px',
+                        padding: '12px 16px', borderRadius: '12px', 
+                        color: 'white', fontSize: '13px', fontWeight: '800', 
+                        textAlign: 'center', marginTop: '6px',
                         animation: 'fadeInUp 0.4s ease',
                         boxShadow: '0 4px 15px rgba(16,185,129,0.4)'
                       }}>
