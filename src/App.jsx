@@ -996,8 +996,7 @@ ${categoriesList}
                   <video src={activeBroll} autoPlay loop muted playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                   
                   {/* Content Overlay - TikTok/IG Safe Zones */}
-                  {/* Top 80px = status bar + search. Bottom 130px = username + music. Right 55px = buttons */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '15px', paddingRight: '55px', paddingTop: '80px', paddingBottom: '130px', gap: '9px' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '15px', paddingTop: '80px', paddingBottom: '130px', gap: '9px', direction: 'rtl' }}>
                     
                     {/* Hook - ONLY shows at start, then disappears */}
                     {currentLine === -1 && (
@@ -1007,8 +1006,7 @@ ${categoriesList}
                         color: '#1a1a1a', fontSize: '17px', fontWeight: '900', 
                         lineHeight: '1.5', textAlign: 'center',
                         animation: 'fadeInUp 0.4s ease',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-                        marginRight: '-40px'
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
                       }}>
                         {videoScript.hook}
                       </div>
@@ -1054,7 +1052,7 @@ ${categoriesList}
                         background: 'rgba(16,185,129,0.95)', 
                         padding: '12px 16px', borderRadius: '12px', 
                         color: 'white', fontSize: '13px', fontWeight: '800', 
-                        textAlign: 'center', marginTop: '6px', marginRight: '-40px',
+                        textAlign: 'center', marginTop: '6px',
                         animation: 'fadeInUp 0.4s ease',
                         boxShadow: '0 4px 15px rgba(16,185,129,0.4)'
                       }}>
