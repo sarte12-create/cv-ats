@@ -1005,9 +1005,10 @@ ${categoriesList}
                         background: 'rgba(255,255,255,0.95)',
                         padding: '14px 16px', borderRadius: '12px', 
                         color: '#1a1a1a', fontSize: '17px', fontWeight: '900', 
-                        lineHeight: '1.5', textAlign: 'right',
+                        lineHeight: '1.5', textAlign: 'center',
                         animation: 'fadeInUp 0.4s ease',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                        marginRight: '-40px'
                       }}>
                         {videoScript.hook}
                       </div>
@@ -1024,16 +1025,7 @@ ${categoriesList}
                       ];
                       const c = tipColors[i % tipColors.length];
                       return currentLine >= i && (
-                        <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', animation: 'fadeInUp 0.4s ease', flexDirection: 'row-reverse' }}>
-                          <div style={{ 
-                            minWidth: '32px', height: '32px', borderRadius: '50%', 
-                            background: c.circle, color: 'white', 
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                            fontSize: '16px', fontWeight: '900', flexShrink: 0,
-                            boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
-                          }}>
-                            {i + 1}
-                          </div>
+                        <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', animation: 'fadeInUp 0.4s ease', flexDirection: 'row' }}>
                           <div style={{ 
                             background: c.bg, 
                             padding: '9px 13px', borderRadius: '10px', 
@@ -1042,6 +1034,15 @@ ${categoriesList}
                             textShadow: '0 1px 3px rgba(0,0,0,0.2)'
                           }}>
                             {tip}
+                          </div>
+                          <div style={{ 
+                            minWidth: '32px', height: '32px', borderRadius: '50%', 
+                            background: c.circle, color: 'white', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            fontSize: '16px', fontWeight: '900', flexShrink: 0,
+                            boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
+                          }}>
+                            {i + 1}
                           </div>
                         </div>
                       );
@@ -1053,7 +1054,7 @@ ${categoriesList}
                         background: 'rgba(16,185,129,0.95)', 
                         padding: '12px 16px', borderRadius: '12px', 
                         color: 'white', fontSize: '13px', fontWeight: '800', 
-                        textAlign: 'center', marginTop: '6px',
+                        textAlign: 'center', marginTop: '6px', marginRight: '-40px',
                         animation: 'fadeInUp 0.4s ease',
                         boxShadow: '0 4px 15px rgba(16,185,129,0.4)'
                       }}>
