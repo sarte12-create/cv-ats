@@ -425,34 +425,115 @@ ${categoriesList}
 
   const exportStackingVideo = async () => {
     if (!videoScript || !videoScript.hook) { alert("ولد السكربت أولاً!"); return; }
+    const videoEl = document.querySelector('#reels-stacking-preview video');
+    if (!videoEl) { alert("اختر فيديو خلفية أولاً!"); return; }
     setLoading(true);
     setLoadingMsg("جاري دمج الفيديو مع النصائح... ⏳");
     try {
-      const mockup = document.getElementById('reels-stacking-preview');
-      if (!mockup) throw new Error('المعاينة غير موجودة');
-      // Capture each state
-      const frames = [];
-      setIsPlaying(true);
-      // Hook frame
-      setCurrentLine(-1);
-      await new Promise(r => setTimeout(r, 200));
-      frames.push({ canvas: await htmlToImage.toCanvas(mockup, { pixelRatio: 2 }), duration: 3000 });
-      // Tips frames (stacking)
-      for (let i = 0; i < videoScript.tips.length; i++) {
-        setCurrentLine(i);
-        await new Promise(r => setTimeout(r, 200));
-        frames.push({ canvas: await htmlToImage.toCanvas(mockup, { pixelRatio: 2 }), duration: 2000 });
-      }
-      // CTA frame
-      setCurrentLine(videoScript.tips.length);
-      await new Promise(r => setTimeout(r, 200));
-      frames.push({ canvas: await htmlToImage.toCanvas(mockup, { pixelRatio: 2 }), duration: 2000 });
-      setIsPlaying(false);
-      setCurrentLine(-1);
-      // Record
+      const W = 1080, H = 1920; // TikTok resolution
       const vc = document.createElement('canvas');
-      vc.width = frames[0].canvas.width; vc.height = frames[0].canvas.height;
+      vc.width = W; vc.height = H;
       const ctx = vc.getContext('2d');
+
+      // Helper: draw rounded rect
+      const roundRect = (x, y, w, h, r) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      };
+
+      // Helper: wrap text into lines
+      const wrapText = (text, maxWidth) => {
+        const words = text.split(' ');
+        const lines = []; let line = '';
+        for (const word of words) {
+          const test = line ? line + ' ' + word : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line); line = word;
+          } else { line = test; }
+        }
+        if (line) lines.push(line);
+        return lines;
+      };
+
+      // Tip colors
+      const tipColors = ['#f59e0b', '#06b6d4', '#f59e0b', '#06b6d4', '#a855f7'];
+
+      // Draw a single frame
+      const drawFrame = (step) => {
+        // B-Roll background
+        ctx.globalAlpha = 0.7;
+        ctx.drawImage(videoEl, 0, 0, W, H);
+        ctx.globalAlpha = 1.0;
+
+        const padX = 40, startY = 450;
+        const contentW = W - padX * 2;
+        let curY = startY;
+
+        if (step === -1) {
+          // Hook frame
+          ctx.font = '900 48px sans-serif';
+          ctx.textAlign = 'center'; ctx.direction = 'rtl';
+          const hookLines = wrapText(videoScript.hook, contentW - 60);
+          const hookH = hookLines.length * 60 + 40;
+          roundRect(padX, curY, contentW, hookH, 24);
+          ctx.fillStyle = 'rgba(255,255,255,0.95)';
+          ctx.fill();
+          ctx.fillStyle = '#1a1a1a';
+          hookLines.forEach((l, li) => {
+            ctx.fillText(l, W / 2, curY + 50 + li * 60);
+          });
+        } else {
+          // Tips
+          const tipsToShow = Math.min(step + 1, videoScript.tips.length);
+          for (let i = 0; i < tipsToShow; i++) {
+            const c = tipColors[i % tipColors.length];
+            ctx.font = '700 38px sans-serif';
+            ctx.textAlign = 'right'; ctx.direction = 'rtl';
+            const tipLines = wrapText(videoScript.tips[i], contentW - 120);
+            const tipH = tipLines.length * 48 + 30;
+            // Colored box
+            roundRect(padX, curY, contentW - 80, tipH, 20);
+            ctx.fillStyle = c; ctx.globalAlpha = 0.92; ctx.fill(); ctx.globalAlpha = 1;
+            // Text
+            ctx.fillStyle = 'white';
+            tipLines.forEach((l, li) => {
+              ctx.fillText(l, padX + contentW - 100, curY + 42 + li * 48);
+            });
+            // Number circle
+            const circleX = padX + contentW - 40;
+            const circleY = curY + tipH / 2;
+            ctx.beginPath(); ctx.arc(circleX, circleY, 28, 0, Math.PI * 2);
+            ctx.fillStyle = c; ctx.fill();
+            ctx.fillStyle = 'white'; ctx.font = '900 36px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(String(i + 1), circleX, circleY + 12);
+            curY += tipH + 20;
+          }
+          // CTA
+          if (step >= videoScript.tips.length) {
+            ctx.font = '800 38px sans-serif';
+            ctx.textAlign = 'center'; ctx.direction = 'rtl';
+            const ctaLines = wrapText(videoScript.cta, contentW - 60);
+            const ctaH = ctaLines.length * 48 + 40;
+            roundRect(padX, curY, contentW, ctaH, 24);
+            ctx.fillStyle = 'rgba(16,185,129,0.95)'; ctx.fill();
+            ctx.fillStyle = 'white';
+            ctaLines.forEach((l, li) => {
+              ctx.fillText(l, W / 2, curY + 48 + li * 48);
+            });
+          }
+        }
+      };
+
+      // Record
       const stream = vc.captureStream(30);
       const mimeOpts = MediaRecorder.isTypeSupported('video/mp4') ? {mimeType:'video/mp4'} : MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? {mimeType:'video/webm;codecs=vp9'} : {mimeType:'video/webm'};
       const rec = new MediaRecorder(stream, mimeOpts);
@@ -465,10 +546,20 @@ ${categoriesList}
         a.click(); incrementProduction(); setLoading(false); setLoadingMsg('');
       };
       rec.start();
-      for (const f of frames) { ctx.drawImage(f.canvas, 0, 0); await new Promise(r => setTimeout(r, f.duration)); }
+
+      // Animate: hook 3s, each tip 2s, CTA 2s
+      const steps = [-1, ...videoScript.tips.map((_, i) => i), videoScript.tips.length];
+      const durations = [3000, ...videoScript.tips.map(() => 2000), 2000];
+      for (let s = 0; s < steps.length; s++) {
+        const endTime = Date.now() + durations[s];
+        while (Date.now() < endTime) {
+          drawFrame(steps[s]);
+          await new Promise(r => requestAnimationFrame(r));
+        }
+      }
       rec.stop();
     } catch(e) {
-      console.error(e); alert('فشل التصدير: ' + (e?.message || '')); setLoading(false); setIsPlaying(false);
+      console.error(e); alert('فشل التصدير: ' + (e?.message || '')); setLoading(false);
     }
   };
 
