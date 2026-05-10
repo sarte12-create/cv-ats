@@ -1027,15 +1027,6 @@ ${categoriesList}
                       return currentLine >= i && (
                         <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', animation: 'fadeInUp 0.4s ease', flexDirection: 'row' }}>
                           <div style={{ 
-                            background: c.bg, 
-                            padding: '9px 13px', borderRadius: '10px', 
-                            color: 'white', fontSize: '13px', fontWeight: '700', 
-                            lineHeight: '1.4', textAlign: 'right', flex: 1,
-                            textShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                          }}>
-                            {tip}
-                          </div>
-                          <div style={{ 
                             minWidth: '32px', height: '32px', borderRadius: '50%', 
                             background: c.circle, color: 'white', 
                             display: 'flex', alignItems: 'center', justifyContent: 'center', 
@@ -1043,6 +1034,15 @@ ${categoriesList}
                             boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
                           }}>
                             {i + 1}
+                          </div>
+                          <div style={{ 
+                            background: c.bg, 
+                            padding: '9px 13px', borderRadius: '10px', 
+                            color: 'white', fontSize: '13px', fontWeight: '700', 
+                            lineHeight: '1.4', textAlign: 'right', flex: 1,
+                            textShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                          }}>
+                            {tip}
                           </div>
                         </div>
                       );
