@@ -52,6 +52,7 @@ export default function App() {
   const [activeTemplate, setActiveTemplate] = useState([]);
   const [suggestedIdeas, setSuggestedIdeas] = useState([]);
   const [suggestedVideoIdeas, setSuggestedVideoIdeas] = useState([]);
+  const [premiumIdeas, setPremiumIdeas] = useState([]);
   const [customIdea, setCustomIdea] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
@@ -122,6 +123,14 @@ export default function App() {
     const shuffled = [...contentPillars].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count);
   };
+
+  const refreshPremiumIdeas = () => {
+    setPremiumIdeas(getRandomPillars(5));
+  };
+
+  useEffect(() => {
+    refreshPremiumIdeas();
+  }, []);
 
   const fetchVideoIdeas = async () => {
     const pillars = getRandomPillars(3);
@@ -693,10 +702,10 @@ ${categoriesList}
 
             <div style={{ marginBottom: '15px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ color: '#94a3b8', fontSize: '11px' }}>أفكار تغريدات جاهزة (اضغط لاختيار):</span>
-                <button onClick={fetchVideoIdeas} disabled={loading} style={{ width: 'auto', padding: '3px 10px', fontSize: '11px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '6px', color: '#f59e0b', cursor: 'pointer' }}>🔄 تجديد</button>
+                <span style={{ color: '#94a3b8', fontSize: '11px' }}>أفكار جاهزة (اضغط لاختيار):</span>
+                <button onClick={refreshPremiumIdeas} style={{ width: 'auto', padding: '3px 10px', fontSize: '11px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '6px', color: '#f59e0b', cursor: 'pointer' }}>🔄 تجديد الأفكار</button>
               </div>
-              {contentPillars.slice(0, 5).sort(() => Math.random() - 0.5).map((p, idx) => (
+              {premiumIdeas.map((p, idx) => (
                 <div key={idx} style={{ marginBottom: '8px', padding: '8px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', fontSize: '12px' }} onClick={() => setPremiumTopic(p.angle)}>
                   <span style={{ color: '#f59e0b' }}>{p.cat}</span>
                 </div>
@@ -875,10 +884,14 @@ ${categoriesList}
             <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '10px 0' }} />
 
             <div style={{ marginBottom: '12px' }}>
-              <div style={{ color: '#94a3b8', fontSize: '11px', marginBottom: '6px' }}>أفكار جاهزة:</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ color: '#94a3b8', fontSize: '11px' }}>أفكار جاهزة:</span>
+                <button onClick={fetchVideoIdeas} disabled={loading} style={{ width: 'auto', padding: '3px 10px', fontSize: '11px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '6px', color: '#e92a67', cursor: 'pointer' }}>🔄 تجديد الأفكار بالذكاء الاصطناعي</button>
+              </div>
               {suggestedVideoIdeas.map((idea, idx) => (
                 <div key={idx} style={{ marginBottom: '6px', padding: '6px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)', fontSize: '11px' }} onClick={() => setVideoTopic(idea.title)}>
-                  <span style={{ color: '#e92a67' }}>{idea.title}</span>
+                  <span style={{ color: '#e92a67', fontWeight: 'bold' }}>{idea.title}</span>
+                  <div style={{ color: '#94a3b8', fontSize: '10px', marginTop: '2px' }}>{idea.description}</div>
                 </div>
               ))}
             </div>
