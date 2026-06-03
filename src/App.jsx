@@ -7,6 +7,22 @@ import './index.css';
 const apiKeysStr = import.meta.env.VITE_GEMINI_API_KEYS || import.meta.env.VITE_GEMINI_API_KEY;
 const API_KEYS = apiKeysStr ? apiKeysStr.split(',') : [];
 
+// Helper function to extract JSON robustly
+const extractJSON = (rawText) => {
+  const match = rawText.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+  if (!match) throw new Error("لا يوجد JSON في الإخراج");
+  
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    // محاولة إصلاح JSON ناقص بإغلاقه
+    const fixed = match[0].endsWith(']') || match[0].endsWith('}') 
+      ? match[0] 
+      : match[0] + (match[0].startsWith('[') ? ']' : '}');
+    return JSON.parse(fixed);
+  }
+};
+
 // Helper function to execute Gemini requests with fallback rotation
 const executeWithFallback = async (promptMsg) => {
   if (API_KEYS.length === 0) throw new Error("لم يتم العثور على أي مفاتيح Gemini في البيئة.");
@@ -15,8 +31,11 @@ const executeWithFallback = async (promptMsg) => {
   for (let i = 0; i < API_KEYS.length; i++) {
     try {
       const genAI = new GoogleGenerativeAI(API_KEYS[i].trim());
-      // Reverted to gemini-2.5-flash which has active quota for this tier
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      // Configured with systemInstruction for better persona adherence
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        systemInstruction: "أنت صانع محتوى سعودي محترف لحساب @seartk3 متخصص في التوظيف وتطوير المسار المهني."
+      });
       const result = await model.generateContent(promptMsg);
       return result; // Success! Return immediately.
     } catch (e) {
@@ -85,18 +104,18 @@ export default function App() {
 
   // === نظام تنويع المحتوى (Content Rotation Engine) ===
   const contentPillars = [
-    { cat: 'أخطاء المقابلات الشخصية', angle: 'غلطات يسويها المتقدمين في المقابلة وتخليهم ينرفضون فوراً' },
-    { cat: 'أسرار مدراء التوظيف', angle: 'أشياء يفكر فيها الـ HR بس ما يقولها لك وجهاً لوجه' },
-    { cat: 'قصص نجاح حقيقية', angle: 'شخص كان عاطل وغيّر شي بسيط في ملفه وتوظف خلال أسبوع' },
-    { cat: 'لينكد إن والبراند الشخصي', angle: 'كيف تخلي حسابك في لينكد إن يجذب مدراء التوظيف لك بدون ما تقدم' },
-    { cat: 'مفاوضة الراتب', angle: 'كيف تتفاوض على راتبك بذكاء وتاخذ أعلى عرض ممكن' },
-    { cat: 'الفرق بين المتقدم العادي والمحترف', angle: 'عادات وأساليب يستخدمها المحترفين في البحث عن وظيفة' },
-    { cat: 'تحولات سوق العمل السعودي', angle: 'تغييرات جديدة في سوق العمل السعودي والوظائف المطلوبة حالياً' },
-    { cat: 'نصائح لحديثي التخرج', angle: 'كيف يبدأ الخريج الجديد بدون خبرة ويحصل على أول وظيفة' },
-    { cat: 'أخطاء السيرة الذاتية', angle: 'أشياء موجودة في سيرتك الذاتية تخلي الشركات ترميها بالثانية الأولى' },
-    { cat: 'البريد الإلكتروني والتقديم', angle: 'كيف تكتب إيميل تقديم يخلي HR يفتحه قبل أي أحد' },
-    { cat: 'العمل عن بعد', angle: 'وظائف عن بعد برواتب عالية وكيف تقدم عليها صح' },
-    { cat: 'علم النفس في التوظيف', angle: 'حيل نفسية يستخدمها المحترفين عشان يأثرون على قرار التوظيف' },
+    { cat: 'أخطاء المقابلات الشخصية', angle: 'غلطات يسويها المتقدمون وتخلي الـ HR يرفضهم في أول 3 دقائق.' },
+    { cat: 'أسرار مدراء التوظيف', angle: 'أشياء حقيقية يفكر فيها الـ HR بس مستحيل يقولها لك بوجهك.' },
+    { cat: 'قصص نجاح حقيقية', angle: 'قصة شخص كان عاطل وغيّر تفصيل بسيط في ملفه وتوظف خلال أسبوع واحد.' },
+    { cat: 'لينكد إن والبراند الشخصي', angle: 'كيف تبني حساب لينكد إن قوي يخلي مدراء التوظيف يرسلون لك عروض بدل ما تقدم.' },
+    { cat: 'مفاوضة الراتب', angle: 'تكنيك ذكي يفاوض به المحترفون على رواتبهم ويحصلون على أعلى عرض مالي ممكن.' },
+    { cat: 'الفرق بين المتقدم العادي والمحترف', angle: 'عادات وأساليب سرية يستخدمها المحترفون في البحث عن وظيفة وتختصر عليهم الشهور.' },
+    { cat: 'تحولات سوق العمل السعودي', angle: 'تغييرات جديدة في التوظيف بالسعودية والمهارات التي تبحث عنها الشركات فوراً.' },
+    { cat: 'نصائح لحديثي التخرج', angle: 'خطوات عملية يبدأ بها الخريج الجديد لتعويض نقص الخبرة والحصول على أول وظيفة.' },
+    { cat: 'أخطاء السيرة الذاتية', angle: 'أخطاء قاتلة موجودة في سيرتك الذاتية تخلي الشركات ترميها في سلة المهملات بالثانية الأولى.' },
+    { cat: 'البريد الإلكتروني والتقديم', angle: 'كيف تكتب إيميل تقديم لا يُقاوم يخلي الـ HR يفتحه قبل أي إيميل ثاني.' },
+    { cat: 'العمل عن بعد', angle: 'كيف تصطاد وظائف عن بعد برواتب عالية وأنت في بيتك وكيف تقدم عليها بشكل صحيح.' },
+    { cat: 'علم النفس في التوظيف', angle: 'حيل نفسية خفية يستخدمها أذكياء التوظيف للتأثير المباشر على قرار من يقابلهم.' },
   ];
 
   const getRandomPillars = (count) => {
@@ -105,12 +124,12 @@ export default function App() {
   };
 
   const fetchVideoIdeas = async () => {
-    const pillars = getRandomPillars(5);
+    const pillars = getRandomPillars(3);
     const categoriesList = pillars.map((p, i) => `${i+1}. الفئة: "${p.cat}" — الزاوية: ${p.angle}`).join('\n');
     try {
       const prompt = `أنت صانع محتوى تيك توك سعودي متخصص في مجال التوظيف وتطوير المسار المهني. حسابك يقدم خدمة كتابة السير الذاتية وضبط لينكد إن.
 
-**مهمتك:** اكتب 5 أفكار ريلز مختلفة تماماً عن بعضها. كل فكرة يجب أن تنتمي لفئة مختلفة من الفئات أدناه.
+**مهمتك:** اكتب 3 أفكار ريلز مختلفة تماماً عن بعضها. كل فكرة يجب أن تنتمي لفئة مختلفة من الفئات أدناه.
 
 **الفئات المطلوبة (عشوائية لهذا الطلب):**
 ${categoriesList}
@@ -118,14 +137,13 @@ ${categoriesList}
 **الشروط:**
 - العنوان يجب أن يكون صادماً أو مستفزاً (Clickbait) يجبر الإبهام على التوقف.
 - لا تذكر كلمة "ATS" في أكثر من فكرة واحدة فقط.
-- نوّع بين: نصائح، أسرار، قصص، تحذيرات، مقارنات.
-- لا تكرر نفس الأسلوب أبداً.
+- نوّع بين: نصائح، أسرار، قصص، تحذيرات، مقارنات (كل فكرة أسلوب مختلف).
+- النبرة: عربي خليجي بيضاء — ليس فصحى جافة ولا عامية سوقية.
 
 رد بمصفوفة JSON فقط:
 [{"title": "عنوان قصير جذاب", "description": "وصف الفكرة في سطر"}]`;
       const result = await executeWithFallback(prompt);
-      const rawText = result.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
-      const res = JSON.parse(rawText);
+      const res = extractJSON(result.response.text());
       setSuggestedVideoIdeas(res);
       localStorage.setItem('seartk_video_ideas', JSON.stringify(res));
     } catch (e) {
@@ -150,13 +168,13 @@ ${categoriesList}
 - العنوان يكون Clickbait حقيقي يجذب الانتباه.
 - لا تذكر "ATS" أو "نظام الفرز" في أكثر من فكرة واحدة.
 - نوّع الأساليب: أسرار، قوائم، مقارنات، قصص واقعية.
+- النبرة: عربي خليجي بيضاء — ليس فصحى جافة ولا عامية سوقية.
 
 رد بمصفوفة JSON فقط بدون أي formatting:
 [{"title": "عنوان قصير جذاب", "description": "وصف الفكرة"}]`;
       
       const result = await executeWithFallback(prompt);
-      const rawText = result.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
-      const res = JSON.parse(rawText);
+      const res = extractJSON(result.response.text());
       setSuggestedIdeas(res);
       localStorage.setItem('seartk_carousel_ideas', JSON.stringify(res));
     } catch (e) {
@@ -172,13 +190,17 @@ ${categoriesList}
     try {
       const prompt = `أنت صانع محتوى لمنصة تيك توك في السعودية.
       موضوع الكاروسيل هو: "${topic}"
-      اكتب بالضبط (${slideCount}) شرائح باللغة العربية (لهجة بيضاء احترافية).
+      اكتب بالضبط (${slideCount}) شرائح باللغة العربية.
+      - النبرة: عربي خليجي بيضاء — ليس فصحى جافة ولا عامية سوقية.
       - شريحة 1: خطاف قوي.
       - المقاطع الوسطى: اسرد المحتوى القيم المرتبط بالموضوع بشكل تسلسلي ومترابط (التركيز على موضوع البوست نفسه وحلوله وميزاته، لا تحصره فقط بأخطاء الـ ATS إلا إذا كان الموضوع يتطلب ذلك صراحة).
       - الشريحة الأخيرة: الحل والخاتمة (دعوة للمشاهدين للتواصل معك شخصياً عبر رسائل الخاص أو زيارة الرابط في البايو لطلب خدمة تصميم سيرة ذاتية مميزة وضبط اللينكد إن الخاص بهم).
-      مهم: يمكنك وضع الايموجي بشكل طبيعي. استخدم <span class='highlight'>الأرقام والكلمات المهمة</span> في العنوان للإضاءة.
       
-      يجب أن ترد بمصفوفة JSON فقط بالشكل التالي تماماً، ولا تكتب أي شيء آخر ولا تضع علامات formatting:
+      مهم: يمكنك وضع الايموجي بشكل طبيعي. استخدم علامة <span class='highlight'> للكلمات المهمة.
+      مثال صحيح: {"title": "أرسلت <span class='highlight'>300 طلب</span> وما جاك رد؟"}
+      مثال خاطئ: {"title": "أرسلت 300 طلب وما جاك رد؟"}
+      
+      يجب أن ترد بمصفوفة JSON فقط بالشكل التالي تماماً، ولا تكتب أي شيء آخر:
       {
         "caption": "اكتب الكابشن الجذاب الذي سيوضع في تيك توك تحت الفديو واضف الهاشتاجات المناسبة",
         "slides": [
@@ -187,8 +209,7 @@ ${categoriesList}
       }`;
       
       const result = await executeWithFallback(prompt);
-      const rawText = result.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
-      const res = JSON.parse(rawText);
+      const res = extractJSON(result.response.text());
       setActiveTemplate(res.slides);
       setPostCaption(res.caption || "");
     } catch (e) {
@@ -212,9 +233,11 @@ ${categoriesList}
       الشروط:
       - قدّم نصيحة أو معلومة حقيقية مفيدة.
       - لا تذكر ATS إلا إذا كان الموضوع يتطلب ذلك مباشرة.
-      - اجعلها واقعية وقابلة للتطبيق.
+      - اجعلها واقعية وقابلة للتطبيق (تغريدة عميقة مع 3 نقاط عملية كحد أقصى).
       - لا تستخدم إيموجي طفولية (إيموجي واحد أو اثنين كحد أقصى).
-      رد بنص التغريدة فقط، بدون أي مقدمات أو تنسيق. أقصى حد 250 حرف.`;
+      - النبرة: عربي خليجي بيضاء — ليس فصحى جافة ولا عامية سوقية.
+      
+      رد بنص التغريدة فقط، بدون أي مقدمات أو تنسيق. أقصى حد 400 حرف.`;
       const result = await executeWithFallback(prompt);
       setPremiumTweet(result.response.text().trim());
     } catch (e) {
@@ -340,19 +363,19 @@ ${categoriesList}
 
 اكتب سكربت ريلز بأسلوب "النصائح المتراكمة" (Stacking Tips):
 - hook: سؤال أو عبارة خطاف قوية تظهر في البداية (سطر أو سطرين فقط)
-- tips: 4-5 نصائح مرقمة قصيرة (كل نصيحة جملة واحدة مختصرة)
+- tips: 4-5 نصائح مرقمة قصيرة. (كل نصيحة = جملة واحدة لا تتجاوز 8 كلمات، تُقرأ خلال 2 ثانية على الشاشة)
 - cta: خاتمة (تابعنا / سوي لايك / تواصل معنا)
 
 الشروط:
 - لا تذكر ATS أكثر من مرة.
-- النصائح قصيرة وعملية.
+- النصائح قصيرة جداً وعملية.
 - لا تستخدم إيموجي طفولية.
+- النبرة: عربي خليجي بيضاء — ليس فصحى جافة ولا عامية سوقية.
 
 رد بـ JSON فقط:
 {"hook":"الخطاف","tips":["نصيحة 1","نصيحة 2","نصيحة 3","نصيحة 4"],"cta":"الخاتمة"}`;
       const result = await executeWithFallback(prompt);
-      const rawText = result.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
-      const res = JSON.parse(rawText);
+      const res = extractJSON(result.response.text());
       setVideoScript(res);
     } catch (e) {
       console.error(e);
