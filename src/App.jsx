@@ -53,6 +53,7 @@ export default function App() {
   const [suggestedIdeas, setSuggestedIdeas] = useState([]);
   const [suggestedVideoIdeas, setSuggestedVideoIdeas] = useState([]);
   const [premiumIdeas, setPremiumIdeas] = useState([]);
+  const [tweetScale, setTweetScale] = useState(1);
   const [customIdea, setCustomIdea] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
@@ -343,8 +344,18 @@ ${categoriesList}
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             // Draw Tweet in center
-            const tWidth = tweetCanvas.width;
-            const tHeight = tweetCanvas.height;
+            // Preview is 400px wide, Video is 1080px wide. We calculate the base scale to match proportions.
+            const baseScale = canvas.width / 400; 
+            const exportScale = baseScale * tweetScale; // Apply user's selected scale
+            
+            // tweetCanvas is created with pixelRatio: 2, so its pixel size is 2x the logical size.
+            // We use logical size and multiply by exportScale.
+            const logicalWidth = tweetCanvas.width / 2;
+            const logicalHeight = tweetCanvas.height / 2;
+            
+            const tWidth = logicalWidth * exportScale;
+            const tHeight = logicalHeight * exportScale;
+            
             const tx = (canvas.width - tWidth) / 2;
             const ty = (canvas.height - tHeight) / 2;
             ctx.drawImage(tweetCanvas, tx, ty, tWidth, tHeight);
@@ -724,6 +735,20 @@ ${categoriesList}
                 <label style={{ color: 'white', fontSize: '13px', display: 'block', marginBottom: '8px' }}>النص القابل للتعديل:</label>
                 <textarea value={premiumTweet} onChange={e => setPremiumTweet(e.target.value)} className="glass-input" style={{ height: '100px', marginBottom: '15px' }} />
                 
+                <label style={{ display: 'flex', justifyContent: 'space-between', color: 'white', fontSize: '13px', marginBottom: '8px' }}>
+                  <span>حجم النص (Scale):</span>
+                  <span>{Math.round(tweetScale * 100)}%</span>
+                </label>
+                <input 
+                  type="range" 
+                  min="0.5" 
+                  max="1.5" 
+                  step="0.05" 
+                  value={tweetScale} 
+                  onChange={(e) => setTweetScale(parseFloat(e.target.value))} 
+                  style={{ width: '100%', marginBottom: '20px' }}
+                />
+
                 <button onClick={exportPremiumVideo} disabled={loading} style={{ width: '100%', padding: '15px', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
                     ⬇️ تصدير الفيديو النهائي (دمج آلي)
                 </button>
@@ -1071,7 +1096,8 @@ ${categoriesList}
                 {/* Overlay Tweet Mockup */}
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
                     {premiumTweet ? (
-                        premiumTemplate === 'tweet' ? (
+                      <div style={{ transform: `scale(${tweetScale})`, transition: 'transform 0.2s ease', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                        {premiumTemplate === 'tweet' ? (
                             <div id="premium-tweet-mockup" style={{ background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', width: '100%', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '15px', border: '1px solid rgba(255,255,255,0.15)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>💼</div>
@@ -1093,7 +1119,8 @@ ${categoriesList}
                                     {premiumTweet}
                                 </div>
                             </div>
-                        )
+                        )}
+                      </div>
                     ) : (
                         <div style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>قم بتوليد تغريدة مهنية لرؤية المعاينة</div>
                     )}
