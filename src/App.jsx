@@ -1153,7 +1153,7 @@ ${categoriesList}
                   <video src={activeBroll} autoPlay loop muted playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                   
                   {/* Content Overlay - TikTok/IG Safe Zones */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '15px', paddingTop: '80px', paddingBottom: '130px', gap: '9px', direction: 'rtl' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 65px 130px 20px', gap: '10px', direction: 'rtl' }}>
                     
                     {/* Hook - ONLY shows at start, then disappears */}
                     {currentLine === -1 && (
@@ -1171,34 +1171,30 @@ ${categoriesList}
                     
                     {/* Numbered Tips - appear AFTER hook disappears, stack up */}
                     {currentLine >= 0 && videoScript.tips.map((tip, i) => {
-                      const tipColors = [
-                        { bg: 'rgba(245,158,11,0.92)', circle: '#f59e0b' },
-                        { bg: 'rgba(6,182,212,0.92)', circle: '#06b6d4' },
-                        { bg: 'rgba(245,158,11,0.92)', circle: '#f59e0b' },
-                        { bg: 'rgba(6,182,212,0.92)', circle: '#06b6d4' },
-                        { bg: 'rgba(168,85,247,0.92)', circle: '#a855f7' },
-                      ];
-                      const c = tipColors[i % tipColors.length];
+                      // formatTip to highlight numbers and strong words
+                      const formatTip = (text) => {
+                          const formatted = text.replace(/(\d+|مرفوض|السر|أخطاء|هام|مستحيل|سر|فوراً|ينرفضون|تخلي)/g, "<span style='color: #10b981; font-weight: 900;'>$1</span>");
+                          return { __html: formatted };
+                      };
+                      
                       return currentLine >= i && (
-                        <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', animation: 'fadeInUp 0.4s ease', flexDirection: 'row' }}>
+                        <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', animation: 'fadeInUp 0.4s ease', flexDirection: 'row' }}>
                           <div style={{ 
                             minWidth: '32px', height: '32px', borderRadius: '50%', 
-                            background: c.circle, color: 'white', 
+                            background: '#10b981', color: 'white', 
                             display: 'flex', alignItems: 'center', justifyContent: 'center', 
                             fontSize: '16px', fontWeight: '900', flexShrink: 0,
-                            boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
+                            boxShadow: '0 3px 8px rgba(0,0,0,0.5)'
                           }}>
                             {i + 1}
                           </div>
                           <div style={{ 
-                            background: c.bg, 
-                            padding: '9px 13px', borderRadius: '10px', 
-                            color: 'white', fontSize: '13px', fontWeight: '700', 
-                            lineHeight: '1.4', textAlign: 'right', flex: 1,
-                            textShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                          }}>
-                            {tip}
-                          </div>
+                            background: 'rgba(15, 23, 42, 0.8)', 
+                            padding: '10px 14px', borderRadius: '16px', 
+                            color: '#ffffff', fontSize: '13px', fontWeight: '700', 
+                            lineHeight: '1.6', textAlign: 'right', flex: 1,
+                            textShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                          }} dangerouslySetInnerHTML={formatTip(tip)} />
                         </div>
                       );
                     })}
