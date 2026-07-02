@@ -481,101 +481,46 @@ ${categoriesList}
       vc.width = W; vc.height = H;
       const ctx = vc.getContext('2d');
 
-      // Helper: draw rounded rect
-      const roundRect = (x, y, w, h, r) => {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-      };
+      // Animate: hook 3s, each tip 2s, CTA 2s
+      const steps = [-1, ...videoScript.tips.map((_, i) => i), videoScript.tips.length];
+      const durations = [3000, ...videoScript.tips.map(() => 2000), 2000];
 
-      // Helper: wrap text into lines
-      const wrapText = (text, maxWidth) => {
-        const words = text.split(' ');
-        const lines = []; let line = '';
-        for (const word of words) {
-          const test = line ? line + ' ' + word : word;
-          if (ctx.measureText(test).width > maxWidth && line) {
-            lines.push(line); line = word;
-          } else { line = test; }
-        }
-        if (line) lines.push(line);
-        return lines;
-      };
+      // PRE-RENDER SNAPSHOTS for perfect fidelity
+      setLoadingMsg("جاري تجهيز إطارات الفيديو (Snapshots)... ⏳");
+      const overlayEl = document.getElementById('preview-overlay');
+      // Disable animations to avoid capturing mid-animation states
+      const style = document.createElement('style');
+      style.innerHTML = '#preview-overlay * { animation: none !important; transition: none !important; }';
+      document.head.appendChild(style);
 
-      // Tip colors
-      const tipColors = ['#f59e0b', '#06b6d4', '#f59e0b', '#06b6d4', '#a855f7'];
+      const frames = [];
+      const originalLine = currentLine; // save state
+
+      for (let s = 0; s < steps.length; s++) {
+        setCurrentLine(steps[s]); // update UI
+        await new Promise(r => setTimeout(r, 150)); // wait for React render
+        const canvasSnapshot = await htmlToImage.toCanvas(overlayEl, { backgroundColor: 'transparent', pixelRatio: 2 });
+        frames.push(canvasSnapshot);
+      }
+      
+      document.head.removeChild(style);
+      setCurrentLine(originalLine); // restore state
+
+      const baseScale = W / 400; // 1080 / 400 = 2.7
 
       // Draw a single frame
-      const drawFrame = (step) => {
+      const drawFrame = (stepIdx) => {
         // B-Roll background
         ctx.globalAlpha = 0.7;
         ctx.drawImage(videoEl, 0, 0, W, H);
         ctx.globalAlpha = 1.0;
 
-        const padX = 40, startY = 450;
-        const contentW = W - padX * 2;
-        let curY = startY;
-
-        if (step === -1) {
-          // Hook frame
-          ctx.font = '900 48px sans-serif';
-          ctx.textAlign = 'center'; ctx.direction = 'rtl';
-          const hookLines = wrapText(videoScript.hook, contentW - 60);
-          const hookH = hookLines.length * 60 + 40;
-          roundRect(padX, curY, contentW, hookH, 24);
-          ctx.fillStyle = 'rgba(255,255,255,0.95)';
-          ctx.fill();
-          ctx.fillStyle = '#1a1a1a';
-          hookLines.forEach((l, li) => {
-            ctx.fillText(l, W / 2, curY + 50 + li * 60);
-          });
-        } else {
-          // Tips
-          const tipsToShow = Math.min(step + 1, videoScript.tips.length);
-          for (let i = 0; i < tipsToShow; i++) {
-            const c = tipColors[i % tipColors.length];
-            ctx.font = '700 38px sans-serif';
-            ctx.textAlign = 'right'; ctx.direction = 'rtl';
-            const tipLines = wrapText(videoScript.tips[i], contentW - 120);
-            const tipH = tipLines.length * 48 + 30;
-            // Colored box
-            roundRect(padX, curY, contentW - 80, tipH, 20);
-            ctx.fillStyle = c; ctx.globalAlpha = 0.92; ctx.fill(); ctx.globalAlpha = 1;
-            // Text
-            ctx.fillStyle = 'white';
-            tipLines.forEach((l, li) => {
-              ctx.fillText(l, padX + contentW - 100, curY + 42 + li * 48);
-            });
-            // Number circle
-            const circleX = padX + contentW - 40;
-            const circleY = curY + tipH / 2;
-            ctx.beginPath(); ctx.arc(circleX, circleY, 28, 0, Math.PI * 2);
-            ctx.fillStyle = c; ctx.fill();
-            ctx.fillStyle = 'white'; ctx.font = '900 36px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(String(i + 1), circleX, circleY + 12);
-            curY += tipH + 20;
-          }
-          // CTA
-          if (step >= videoScript.tips.length) {
-            ctx.font = '800 38px sans-serif';
-            ctx.textAlign = 'center'; ctx.direction = 'rtl';
-            const ctaLines = wrapText(videoScript.cta, contentW - 60);
-            const ctaH = ctaLines.length * 48 + 40;
-            roundRect(padX, curY, contentW, ctaH, 24);
-            ctx.fillStyle = 'rgba(16,185,129,0.95)'; ctx.fill();
-            ctx.fillStyle = 'white';
-            ctaLines.forEach((l, li) => {
-              ctx.fillText(l, W / 2, curY + 48 + li * 48);
-            });
-          }
+        // Draw snapshot overlay
+        const snapshot = frames[stepIdx];
+        if (snapshot) {
+           const sW = (snapshot.width / 2) * baseScale;
+           const sH = (snapshot.height / 2) * baseScale;
+           ctx.drawImage(snapshot, 0, 0, sW, sH);
         }
       };
 
@@ -593,13 +538,11 @@ ${categoriesList}
       };
       rec.start();
 
-      // Animate: hook 3s, each tip 2s, CTA 2s
-      const steps = [-1, ...videoScript.tips.map((_, i) => i), videoScript.tips.length];
-      const durations = [3000, ...videoScript.tips.map(() => 2000), 2000];
+      setLoadingMsg("جاري تصدير الفيديو النهائي... ⏳");
       for (let s = 0; s < steps.length; s++) {
         const endTime = Date.now() + durations[s];
         while (Date.now() < endTime) {
-          drawFrame(steps[s]);
+          drawFrame(s);
           await new Promise(r => requestAnimationFrame(r));
         }
       }
@@ -1153,17 +1096,21 @@ ${categoriesList}
                   <video src={activeBroll} autoPlay loop muted playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                   
                   {/* Content Overlay - TikTok/IG Safe Zones */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 65px 130px 20px', gap: '10px', direction: 'rtl' }}>
+                  <div id="preview-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 65px 130px 20px', gap: '10px', direction: 'rtl' }}>
                     
                     {/* Hook - ONLY shows at start, then disappears */}
                     {currentLine === -1 && (
                       <div style={{ 
+                        position: 'absolute',
+                        top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                        width: '85%',
                         background: 'rgba(255,255,255,0.95)',
                         padding: '14px 16px', borderRadius: '12px', 
                         color: '#1a1a1a', fontSize: '17px', fontWeight: '900', 
                         lineHeight: '1.5', textAlign: 'center',
                         animation: 'fadeInUp 0.4s ease',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                        zIndex: 10
                       }}>
                         {videoScript.hook}
                       </div>
@@ -1192,7 +1139,7 @@ ${categoriesList}
                             background: 'rgba(15, 23, 42, 0.8)', 
                             padding: '10px 14px', borderRadius: '16px', 
                             color: '#ffffff', fontSize: '13px', fontWeight: '700', 
-                            lineHeight: '1.6', textAlign: 'right', flex: 1,
+                            lineHeight: '1.6', textAlign: 'right', flex: '0 1 auto', width: 'fit-content',
                             textShadow: '0 1px 3px rgba(0,0,0,0.5)'
                           }} dangerouslySetInnerHTML={formatTip(tip)} />
                         </div>
@@ -1207,7 +1154,8 @@ ${categoriesList}
                         color: 'white', fontSize: '13px', fontWeight: '800', 
                         textAlign: 'center', marginTop: '6px',
                         animation: 'fadeInUp 0.4s ease',
-                        boxShadow: '0 4px 15px rgba(16,185,129,0.4)'
+                        boxShadow: '0 4px 15px rgba(16,185,129,0.4)',
+                        alignSelf: 'center', width: 'fit-content', maxWidth: '100%'
                       }}>
                         {videoScript.cta}
                       </div>
