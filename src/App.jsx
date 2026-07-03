@@ -1126,7 +1126,7 @@ ${categoriesList}
                 </div>
             </div>
           </div>
-        ) : (
+        ) : appMode === 'video' ? (
           /* STACKING TIPS REELS PREVIEW */
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '80vh' }}>
             {!videoScript || !videoScript.hook ? (
