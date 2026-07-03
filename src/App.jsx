@@ -642,22 +642,32 @@ ${categoriesList}
         </div>
         
         {/* APP MODE TOGGLE */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: 'rgba(0,0,0,0.3)', padding: '5px', borderRadius: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: 'rgba(0,0,0,0.3)', padding: '5px', borderRadius: '12px', flexWrap: 'wrap' }}>
           <button 
             onClick={() => setAppMode('carousel')} 
-            style={{ flex: 1, padding: '10px', background: appMode === 'carousel' ? 'var(--primary-color)' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+            style={{ flex: '1 1 30%', padding: '10px', background: appMode === 'carousel' ? 'var(--primary-color)' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
           >📸 مصنع الكاروسيل</button>
           <button 
             onClick={() => setAppMode('premium-reel')} 
-            style={{ flex: 1, padding: '10px', background: appMode === 'premium-reel' ? '#f59e0b' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+            style={{ flex: '1 1 30%', padding: '10px', background: appMode === 'premium-reel' ? '#f59e0b' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
           >💼 الفيديوهات الاحترافية</button>
           <button 
             onClick={() => setAppMode('video')} 
-            style={{ flex: 1, padding: '10px', background: appMode === 'video' ? '#e92a67' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+            style={{ flex: '1 1 30%', padding: '10px', background: appMode === 'video' ? '#e92a67' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
           >🎬 فيديو Reels</button>
+          <button 
+            onClick={() => setAppMode('analytics')} 
+            style={{ flex: '1 1 100%', padding: '10px', background: appMode === 'analytics' ? '#8b5cf6' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+          >📊 تحليلات الحسابات (Dashboard)</button>
         </div>
 
-        {appMode === 'premium-reel' ? (
+        {appMode === 'analytics' ? (
+          <div className="glass-panel">
+             <h3 style={{ color: '#8b5cf6', marginBottom: '10px' }}>📊 مركز التحليلات</h3>
+             <p style={{ color: '#94a3b8', fontSize: '13px' }}>يتم هنا عرض بيانات حساباتك بذكاء. الأرقام الحالية هي أرقام تجريبية (Mock) للبروفة.</p>
+             <button onClick={() => alert("قريباً: سيتم توفير الربط الفعلي هنا")} style={{ width: '100%', marginTop: '15px', padding: '10px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', color: 'white' }}>🔗 ربط حسابات حقيقية (قريباً)</button>
+          </div>
+        ) : appMode === 'premium-reel' ? (
           <div className="glass-panel" style={{ marginBottom: '20px' }}>
             <h3 style={{ marginBottom: '10px', color: '#f59e0b', display: 'flex', justifyContent: 'space-between' }}>
                 <span>💼 مصنع الريلز الاحترافي (B-Roll)</span>
@@ -1207,6 +1217,67 @@ ${categoriesList}
                 </div>
               </div>
             )}
+          </div>
+        ) : appMode === 'analytics' ? (
+          <div style={{ width: '100%', maxWidth: '900px', padding: '20px', direction: 'rtl', color: 'white', animation: 'fadeInUp 0.5s ease' }}>
+            <h2 style={{ fontSize: '28px', marginBottom: '20px', borderBottom: '2px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>📊 تحليلات حسابات @seartk3</h2>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+              {/* Instagram Card */}
+              <div className="glass-panel" style={{ background: 'linear-gradient(135deg, #f58529, #dd2a7b, #8134af)', padding: '20px', borderRadius: '15px' }}>
+                <h3 style={{ fontSize: '20px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>📸 Instagram</h3>
+                <div style={{ fontSize: '36px', fontWeight: '900', marginBottom: '5px' }}>12.4K</div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>متابع</div>
+                <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}><span>معدل التفاعل:</span> <strong>4.2%</strong></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>مشاهدات الريلز:</span> <strong>150K/أسبوع</strong></div>
+                </div>
+              </div>
+
+              {/* TikTok Card */}
+              <div className="glass-panel" style={{ background: 'linear-gradient(135deg, #000000, #25F4EE, #FE2C55)', padding: '20px', borderRadius: '15px' }}>
+                <h3 style={{ fontSize: '20px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>🎵 TikTok</h3>
+                <div style={{ fontSize: '36px', fontWeight: '900', marginBottom: '5px' }}>85.2K</div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>متابع</div>
+                <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}><span>معدل التفاعل:</span> <strong>8.7%</strong></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>المشاهدات:</span> <strong>1.2M/أسبوع</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: '20px', marginBottom: '15px' }}>📈 أداء آخر الفيديوهات</h3>
+            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', borderRadius: '15px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.1)' }}>
+                    <th style={{ padding: '15px' }}>عنوان الفيديو</th>
+                    <th style={{ padding: '15px' }}>المنصة</th>
+                    <th style={{ padding: '15px' }}>المشاهدات</th>
+                    <th style={{ padding: '15px' }}>اللايكات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { title: 'كيف تتجاوز نظام الـ ATS؟', platform: 'TikTok', views: '250K', likes: '12K' },
+                    { title: 'أخطاء قاتلة في السيرة الذاتية', platform: 'Instagram', views: '45K', likes: '3.2K' },
+                    { title: 'أسرار مقابلة العمل', platform: 'TikTok', views: '80K', likes: '5.1K' },
+                    { title: 'رسالة إيميل التقديم المثالية', platform: 'Instagram', views: '22K', likes: '1.8K' },
+                  ].map((row, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                      <td style={{ padding: '15px' }}>{row.title}</td>
+                      <td style={{ padding: '15px', color: row.platform === 'TikTok' ? '#25F4EE' : '#ffc0cb', fontWeight: 'bold' }}>{row.platform}</td>
+                      <td style={{ padding: '15px', fontWeight: 'bold' }}>{row.views}</td>
+                      <td style={{ padding: '15px' }}>{row.likes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div style={{ marginTop: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+              *هذه بيانات تجريبية (Mock Data). سيتم برمجتها لتسحب أرقامك الحقيقية لاحقاً.
+            </div>
           </div>
         )}
       </div>
