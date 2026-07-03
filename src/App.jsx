@@ -48,6 +48,20 @@ const executeWithFallback = async (promptMsg) => {
 };
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('seartk_auth') === 'true');
+  const [passcode, setPasscode] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (passcode === 'seartk3') {
+      setIsAuthenticated(true);
+      localStorage.setItem('seartk_auth', 'true');
+    } else {
+      setAuthError('الرمز السري غير صحيح!');
+    }
+  };
+
   const [appMode, setAppMode] = useState("carousel"); // 'carousel' or 'video'
   const [activeTemplate, setActiveTemplate] = useState([]);
   const [suggestedIdeas, setSuggestedIdeas] = useState([]);
@@ -591,6 +605,33 @@ ${categoriesList}
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0f172a', direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div className="glass-panel" style={{ width: '400px', textAlign: 'center', padding: '40px 30px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ fontSize: '48px', marginBottom: '10px' }}>🏭</div>
+          <h2 style={{ color: '#10b981', marginBottom: '10px' }}>مصنع محتوى @seartk3</h2>
+          <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '30px' }}>يرجى إدخال الرمز السري للوصول إلى لوحة التحكم والتحليلات.</p>
+          <form onSubmit={handleLogin}>
+            <input 
+              type="password" 
+              value={passcode} 
+              onChange={(e) => { setPasscode(e.target.value); setAuthError(''); }} 
+              placeholder="الرمز السري..." 
+              className="glass-input" 
+              style={{ textAlign: 'center', fontSize: '18px', letterSpacing: '5px', marginBottom: '15px' }} 
+              autoFocus
+            />
+            {authError && <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '15px', animation: 'fadeInUp 0.3s ease' }}>{authError}</p>}
+            <button type="submit" className="glass-button" style={{ width: '100%', padding: '12px', fontSize: '16px', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 'bold' }}>
+              فتح المصنع 🔒
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-layout">
       {/* SIDEBAR: CONTROLS */}
@@ -882,8 +923,10 @@ ${categoriesList}
                   <div key={i} style={{ display: 'flex', gap: '5px', marginBottom: '5px', alignItems: 'center' }}>
                     <span style={{ color: '#f59e0b', fontWeight: 'bold', minWidth: '18px', fontSize: '12px' }}>{i+1}</span>
                     <input value={tip} onChange={(e) => { const t = [...videoScript.tips]; t[i] = e.target.value; setVideoScript({...videoScript, tips: t}); }} className="glass-input" style={{ padding: '5px', fontSize: '11px', borderRight: '3px solid #f59e0b' }} />
+                    <button onClick={() => { const t = [...videoScript.tips]; t.splice(i, 1); setVideoScript({...videoScript, tips: t}); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px', padding: '0 5px' }} title="حذف النقطة">🗑️</button>
                   </div>
                 ))}
+                <button onClick={() => { const t = [...videoScript.tips, "نقطة جديدة..."]; setVideoScript({...videoScript, tips: t}); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '5px', color: 'white', fontSize: '11px', padding: '5px 10px', marginTop: '5px', cursor: 'pointer', width: 'fit-content' }}>➕ إضافة نقطة</button>
                 <label style={{ color: '#ef4444', fontSize: '11px', marginTop: '6px', display: 'block' }}>الخاتمة:</label>
                 <input value={videoScript.cta} onChange={(e) => setVideoScript({...videoScript, cta: e.target.value})} className="glass-input" style={{ marginBottom: '12px', borderRight: '3px solid #ef4444' }} />
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -1096,17 +1139,17 @@ ${categoriesList}
                   <video src={activeBroll} autoPlay loop muted playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
                   
                   {/* Content Overlay - TikTok/IG Safe Zones */}
-                  <div id="preview-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 65px 130px 20px', gap: '10px', direction: 'rtl' }}>
+                  <div id="preview-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 65px 130px 70px', gap: '10px', direction: 'rtl' }}>
                     
                     {/* Hook - ONLY shows at start, then disappears */}
                     {currentLine === -1 && (
                       <div style={{ 
                         position: 'absolute',
                         top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                        width: '85%',
-                        background: 'rgba(255,255,255,0.95)',
+                        width: 'fit-content', maxWidth: '85%',
+                        background: 'rgba(0, 0, 0, 0.75)',
                         padding: '14px 16px', borderRadius: '12px', 
-                        color: '#1a1a1a', fontSize: '17px', fontWeight: '900', 
+                        color: '#ffffff', fontSize: '17px', fontWeight: '900', 
                         lineHeight: '1.5', textAlign: 'center',
                         animation: 'fadeInUp 0.4s ease',
                         boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
@@ -1136,7 +1179,7 @@ ${categoriesList}
                             {i + 1}
                           </div>
                           <div style={{ 
-                            background: 'rgba(15, 23, 42, 0.8)', 
+                            background: 'rgba(0, 0, 0, 0.75)', 
                             padding: '10px 14px', borderRadius: '16px', 
                             color: '#ffffff', fontSize: '13px', fontWeight: '700', 
                             lineHeight: '1.6', textAlign: 'right', flex: '0 1 auto', width: 'fit-content',
@@ -1149,7 +1192,7 @@ ${categoriesList}
                     {/* CTA */}
                     {currentLine >= videoScript.tips.length && (
                       <div style={{ 
-                        background: 'rgba(16,185,129,0.95)', 
+                        background: 'rgba(0, 0, 0, 0.75)', border: '2px solid rgba(16,185,129,0.8)', 
                         padding: '12px 16px', borderRadius: '12px', 
                         color: 'white', fontSize: '13px', fontWeight: '800', 
                         textAlign: 'center', marginTop: '6px',
