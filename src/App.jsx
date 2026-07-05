@@ -83,6 +83,9 @@ export default function App() {
   const [currentLine, setCurrentLine] = useState(0);
   const [bgColor, setBgColor] = useState('#0f172a');
   const [premiumTopic, setPremiumTopic] = useState("");
+  // Viral Predictor States
+  const [viralScore, setViralScore] = useState(null);
+  const [viralStatus, setViralStatus] = useState("");
   const [premiumTweet, setPremiumTweet] = useState(null);
   const [premiumTemplate, setPremiumTemplate] = useState('tweet');
   const [activeBroll, setActiveBroll] = useState('');
@@ -461,6 +464,112 @@ ${categoriesList}
     }
     throw new Error(`جميع مفاتيح Gemini فشلت: ${lastError?.message}`);
   }
+
+  const analyzeVirality = async () => {
+    if (!videoScript) return;
+    setViralStatus("جاري فحص فرصة الانتشار وتحليل السكربت... 🧠");
+    setViralScore(null);
+    let lastError = null;
+    try {
+      if (API_KEYS.length === 0) throw new Error("لا توجد مفاتيح محفوظة في النظام!");
+      
+      const prompt = `أنت خبير تسويق عصبي (Neuromarketing Expert) وتقوم بتحليل سكربت فيديو قصير (تيك توك/ريلز).
+حلل قوة الخطاف العاطفي، وتدفق المعلومات، وقوة الجمل.
+يجب إرجاع النتيجة بصيغة JSON فقط، بدون أي نصوص أو Markdown.
+الصيغة المطلوبة:
+{
+  "hookScore": 85,
+  "cortex": 80,
+  "attention": 75,
+  "language": 90,
+  "drift": 20,
+  "auditory": 70,
+  "virality": 85,
+  "advice": ["نصيحة 1", "نصيحة 2", "نصيحة 3"]
+}
+
+السكربت المراد تحليله:
+الخطاف: ${videoScript.hook}
+النقاط: ${videoScript.tips.join(' | ')}
+الخاتمة: ${videoScript.cta}`;
+
+      let aiScores = null;
+      for (let i = 0; i < API_KEYS.length; i++) {
+        try {
+          const genAI = new GoogleGenerativeAI(API_KEYS[i].trim());
+          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+          const result = await model.generateContent(prompt);
+          aiScores = extractJSON(result.response.text());
+          break;
+        } catch (e) {
+          lastError = e;
+          console.warn("Key failed:", e);
+        }
+      }
+      if (!aiScores) throw new Error("جميع المفاتيح فشلت: " + lastError?.message);
+      setViralScore(aiScores);
+    } catch (e) {
+      alert("خطأ في التحليل: " + e.message);
+    } finally {
+      setViralStatus("");
+    }
+  };
+
+  const autoFixScript = async () => {
+    if (!videoScript || !viralScore) return;
+    setViralStatus("جاري إعادة كتابة السكربت لرفع التقييم السري... ✨");
+    let lastError = null;
+    try {
+      if (API_KEYS.length === 0) throw new Error("لا توجد مفاتيح محفوظة في النظام!");
+      
+      const prompt = `أنت خبير تسويق عصبي. لقد قمت مسبقاً بتقييم هذا السكربت ووجدت به نقاط ضعف بناءً على تقييماتك السابقة.
+الهدف الآن: إعادة كتابة السكربت بالكامل ليرفع فرصة الانتشار (Virality) إلى أعلى من 95/100.
+اجعل الخطاف (Hook) أقوى بكثير، وأزل أي كلمات مملة، واجعل الجمل قصيرة وسريعة.
+
+السكربت القديم:
+الخطاف: ${videoScript.hook}
+النقاط: ${videoScript.tips.join(' | ')}
+الخاتمة: ${videoScript.cta}
+
+النصائح التي تم استخراجها مسبقاً للتحسين:
+${viralScore.advice.join('\\n')}
+
+أعد النتيجة بصيغة JSON فقط:
+{
+  "hook": "الخطاف الجديد القوي جداً (لا يتجاوز 10 كلمات)",
+  "tips": ["النقطة السريعة 1", "النقطة السريعة 2", "النقطة السريعة 3"],
+  "cta": "خاتمة جذابة (Call to Action)"
+}`;
+
+      let fixedScript = null;
+      for (let i = 0; i < API_KEYS.length; i++) {
+        try {
+          const genAI = new GoogleGenerativeAI(API_KEYS[i].trim());
+          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+          const result = await model.generateContent(prompt);
+          fixedScript = extractJSON(result.response.text());
+          break;
+        } catch (e) {
+          lastError = e;
+          console.warn("Key failed:", e);
+        }
+      }
+      if (!fixedScript) throw new Error("جميع المفاتيح فشلت: " + lastError?.message);
+      
+      setVideoScript({
+        ...videoScript,
+        hook: fixedScript.hook,
+        tips: fixedScript.tips || [],
+        cta: fixedScript.cta || fixedScript.CTA || videoScript.cta
+      });
+      setViralScore(null);
+      alert("✨ تم تحديث السكربت بنجاح لنسخة أكثر قوة!");
+    } catch (e) {
+      alert("خطأ في إعادة الصياغة: " + e.message);
+    } finally {
+      setViralStatus("");
+    }
+  };
 
   const playVideo = async () => {
     if (!videoScript || !videoScript.hook) {
@@ -948,6 +1057,51 @@ ${categoriesList}
                   </button>
                   {isPlaying && <button onClick={stopVideo} style={{ padding: '10px', background: '#dc2626', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>⏹️</button>}
                 </div>
+
+                {/* VIRAL PREDICTOR UI */}
+                <div style={{ marginTop: '15px', padding: '12px', background: 'rgba(0,0,0,0.4)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <button 
+                    onClick={analyzeVirality} 
+                    disabled={loading || viralStatus !== ""}
+                    style={{ width: '100%', padding: '10px', background: '#27272a', border: '1px solid #B4FF39', borderRadius: '8px', color: '#B4FF39', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
+                  >
+                    <span>🎯</span> {viralStatus || "فحص احتمالية الانتشار (Viral Predictor)"}
+                  </button>
+
+                  {viralScore && (
+                    <div style={{ marginTop: '12px', animation: 'fadeIn 0.3s' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ 
+                          width: '60px', height: '60px', borderRadius: '50%', 
+                          background: `conic-gradient(${viralScore.virality >= 80 ? '#10b981' : viralScore.virality >= 60 ? '#f59e0b' : '#ef4444'} ${viralScore.virality}%, #333 ${viralScore.virality}%)`,
+                          display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0
+                        }}>
+                          <div style={{ width: '50px', height: '50px', background: '#18181b', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: '16px' }}>
+                            {viralScore.virality}%
+                          </div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ color: 'white', margin: '0 0 5px 0', fontSize: '13px' }}>نقاط الضعف والنصائح:</h4>
+                          <ul style={{ margin: 0, padding: '0 15px', color: '#a1a1aa', fontSize: '11px' }}>
+                            {viralScore.advice?.map((adv, i) => <li key={i} style={{ marginBottom: '3px' }}>{adv}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                      
+                      {viralScore.virality < 95 && (
+                        <button 
+                          onClick={autoFixScript}
+                          disabled={loading || viralStatus !== ""}
+                          style={{ width: '100%', marginTop: '12px', padding: '10px', background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)' }}
+                        >
+                          <span>✨</span> خله علي (إعادة كتابة ذكية لرفع التقييم)
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* END VIRAL PREDICTOR UI */}
+
               </div>
             )}
           </div>
