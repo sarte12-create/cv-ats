@@ -497,7 +497,7 @@ ${categoriesList}
       for (let i = 0; i < API_KEYS.length; i++) {
         try {
           const genAI = new GoogleGenerativeAI(API_KEYS[i].trim());
-          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
           const result = await model.generateContent(prompt);
           aiScores = extractJSON(result.response.text());
           break;
@@ -545,7 +545,7 @@ ${viralScore.advice.join('\\n')}
       for (let i = 0; i < API_KEYS.length; i++) {
         try {
           const genAI = new GoogleGenerativeAI(API_KEYS[i].trim());
-          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
           const result = await model.generateContent(prompt);
           fixedScript = extractJSON(result.response.text());
           break;
