@@ -478,14 +478,14 @@ ${categoriesList}
 يجب إرجاع النتيجة بصيغة JSON فقط، بدون أي نصوص أو Markdown.
 الصيغة المطلوبة:
 {
-  "hookScore": 85,
-  "cortex": 80,
-  "attention": 75,
-  "language": 90,
-  "drift": 20,
-  "auditory": 70,
-  "virality": 85,
-  "advice": ["نصيحة 1", "نصيحة 2", "نصيحة 3"]
+  "hookScore": 45,
+  "cortex": 50,
+  "attention": 40,
+  "language": 55,
+  "drift": 60,
+  "auditory": 50,
+  "virality": 48,
+  "advice": ["الخطاف ممل جداً ولم يثر فضولي", "الجمل طويلة وتحتاج تقصير", "لا يوجد شعور بالخوف من تفويت المعلومة (FOMO)"]
 }
 
 السكربت المراد تحليله:
@@ -570,14 +570,14 @@ ${currentAdvice}
 ملاحظة: هذا السكربت تمت إعادة صياغته ليكون سريعاً ومثيراً للفضول (Negative Framing). إذا وجدته فعّالاً وقوياً، لا تتردد بإعطائه تقييم 95 فأعلى.
 الصيغة المطلوبة JSON:
 {
-  "hookScore": 85,
-  "cortex": 80,
-  "attention": 75,
-  "language": 90,
-  "drift": 20,
-  "auditory": 70,
-  "virality": 85,
-  "advice": ["نصيحة 1", "نصيحة 2"]
+  "hookScore": 45,
+  "cortex": 50,
+  "attention": 40,
+  "language": 55,
+  "drift": 60,
+  "auditory": 50,
+  "virality": 48,
+  "advice": ["الخطاف ممل جداً ولم يثر فضولي", "الجمل طويلة وتحتاج تقصير", "لا يوجد شعور بالخوف من تفويت المعلومة (FOMO)"]
 }
 
 السكربت المراد تحليله:
