@@ -121,6 +121,21 @@ export default function App() {
       .catch(() => setBrollList([]));
   }, []);
 
+  // التعرف التلقائي على اسم أو رقم الفيديو المكتوب في النص
+  useEffect(() => {
+    if (!premiumTopic || !brollList.length) return;
+    for (const b of brollList) {
+      if (
+        (b.id && premiumTopic.includes(b.id)) ||
+        (b.num && (premiumTopic.includes(`مقطع-${b.num}`) || premiumTopic.includes(`مقطع ${b.num}`) || premiumTopic.includes(`[${b.num}]`))) ||
+        (b.title && premiumTopic.includes(b.title))
+      ) {
+        setActiveBroll(b.file);
+        break;
+      }
+    }
+  }, [premiumTopic, brollList]);
+
   // === نظام تنويع المحتوى (Content Rotation Engine) ===
   const contentPillars = [
     { cat: 'أخطاء المقابلات الشخصية', angle: 'غلطات يسويها المتقدمون وتخلي الـ HR يرفضهم في أول 3 دقائق.' },
