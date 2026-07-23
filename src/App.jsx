@@ -1645,11 +1645,16 @@ ${currentAdvice}
                             }}>
                               {video.content}
                             </div>
-                            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <button onClick={() => { setPremiumTopic(video.content); setAppMode('premium-reel'); }} style={{
+                                fontSize: '13px', fontWeight: 'bold', color: 'white', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(245,158,11,0.3)'
+                              }}>
+                                🎬 إنتاج الفيديو الآن
+                              </button>
                               <button onClick={() => { copyText(video.content); alert('تم نسخ النص بنجاح! 📋'); }} style={{
                                 fontSize: '12px', fontWeight: 'bold', color: 'rgba(45,42,38,0.5)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
                               }}>
-                                نسخ النص للمونتاج ✂️
+                                نسخ النص ✂️
                               </button>
                             </div>
                           </div>
