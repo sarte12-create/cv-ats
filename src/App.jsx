@@ -93,12 +93,87 @@ export default function App() {
   const premiumVideoRef = useRef(null);
   const audioRef = useRef(null);
   const [productionCount, setProductionCount] = useState(() => parseInt(localStorage.getItem('seartk_production_count') || '0'));
+  const [calendarProgress, setCalendarProgress] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('seartk_calendar_progress') || '{}'); } catch { return {}; }
+  });
   
   const incrementProduction = () => {
     const newCount = productionCount + 1;
     setProductionCount(newCount);
     localStorage.setItem('seartk_production_count', String(newCount));
   };
+
+  const toggleCalendarItem = (videoId) => {
+    const newProgress = { ...calendarProgress, [videoId]: !calendarProgress[videoId] };
+    setCalendarProgress(newProgress);
+    localStorage.setItem('seartk_calendar_progress', JSON.stringify(newProgress));
+  };
+
+  const copyText = (text) => {
+    try { navigator.clipboard.writeText(text); } catch {
+      const el = document.createElement('textarea'); el.value = text;
+      document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+    }
+  };
+
+  const CONTENT_PLAN = [
+    {
+      day: "اليوم الأول: أساسيات الفرز",
+      videos: [
+        { id: "d1_v1", title: "الفيديو 1 (تعليمي)", content: `حاط صورتك الشخصية بالسيرة الذاتية؟ 🛑\nأنظمة الـ ATS بعض الأحيان تتلخبط بسببها، وفي شركات تستبعد السيرة على طول عشان يتجنبون أي تحيز.\nالحل بسيط: شل الصورة، وخل التركيز كله على مهاراتك.\nعندك سيرة تبيها متوافقة مع النظام؟ جرب "سيرتك علينا" — الرابط بالبايو.` },
+        { id: "d1_v2", title: "الفيديو 2 (تسويقي)", content: `تدري كم ثانية يقضيها الـ HR في قراءة سيرتك؟ 6 ثواني بس.\nفكر فيها كذا: أول ثانيتين لازم يشوف فيها أقوى نقطة عندك، مو يدور عليها.\nهذا بالضبط اللي نشتغل عليه في "سيرتك علينا".\nاطلب تصميم سيرتك، وضمن فرصتك من أول قراءة — البايو.` },
+        { id: "d1_v3", title: "الفيديو 3 (تعليمي)", content: `كيف تجاوب على سؤال "تكلم عن نفسك" بدون ما تسولف؟\nما تحتاج تسرد قصة حياتك من يوم انولدت. استخدم قاعدة بسيطة: حاضر، ماضي، مستقبل.\nوش تسوي الحين، وش أنجزت قبل، وش بتضيف لهم لو انقبلت.\nالمقابلة تبدأ بسيرة قوية — اطلبها من البايو.` }
+      ]
+    },
+    {
+      day: "اليوم الثاني: أسرار لينكد إن",
+      videos: [
+        { id: "d2_v1", title: "الفيديو 1 (تعليمي)", content: `ملفك في لينكد إن مهجور وما يجيك ولا عرض؟\nتخيل الوضع ينعكس، ويصير الـ HR هو اللي يراسلك بعروض.\nالسر في قسم الـ About: اكتب مهاراتك التقنية بدقة، مو كلام إنشائي فاضي.\nنضبط لك ملف يصيدك منه الـ HR — البايو.` },
+        { id: "d2_v2", title: "الفيديو 2 (تسويقي)", content: `تعبت وأنت تعدل سيرتك لكل وظيفة تقدم عليها؟\nساعات تروح في التنسيق، وفي الآخر ما يجي رد، وأحياناً التنسيق نفسه يتخربط لما ترسله.\nخل الشغل لأهله واختصر وقتك.\nاستثمر في مستقبلك، اطلب سيرتك الآن — البايو.` },
+        { id: "d2_v3", title: "الفيديو 3 (تعليمي)", content: `3 أشياء احذفها من سيرتك فوراً:\nالهدف الوظيفي القديم ("أطمح لتطوير مهاراتي")، الخبرات اللي ما لها علاقة بالوظيفة اللي تقدم عليها، وقسم "References available upon request" اللي محد يقراه أصلاً.\nتبي سيرة بدون حشو؟ البايو.` }
+      ]
+    },
+    {
+      day: "اليوم الثالث: فخ المقابلات",
+      videos: [
+        { id: "d3_v1", title: "الفيديو 1 (تعليمي)", content: `لما يسألونك آخر المقابلة "عندك أسئلة لنا؟" وترد "لا شكراً" — هذا معناه إنك غير مهتم.\nجهز سؤال ذكي يترك انطباع، مثل: "وش أكبر تحدي يواجه هذا القسم حالياً؟"\nثقتك بالمقابلة تبدأ بسيرتك — البايو.` },
+        { id: "d3_v2", title: "الفيديو 2 (تسويقي)", content: `تقدم على وظائف وتشوف غيرك أقل خبرة ينقبل قبلك؟\nالفرق مو في سنوات الخبرة، الفرق في كيف تسوق لنفسك.\nسيرة مكتوبة بذكاء تعادل سنين من الخبرة.\nخلنا نسوق لك صح — اطلب سيرتك من البايو.` },
+        { id: "d3_v3", title: "الفيديو 3 (تعليمي)", content: `ترسل سيرتك بصيغة Word؟ هذا خطأ يكلفك أكثر مما تتوقع.\nالتنسيق يتدمر بجهاز الـ HR، والخطوط تتغير، وتصير سيرتك طلاسم.\nدائماً وأبداً: PDF بس.\nنصمم لك سيرة جاهزة للإرسال — البايو.` }
+      ]
+    },
+    {
+      day: "اليوم الرابع: لغة السيرة",
+      videos: [
+        { id: "d4_v1", title: "الفيديو 1 (تعليمي)", content: `كلمات تضعف سيرتك، استبدلها فوراً:\nبدل "مسؤول عن" اكتب "أدرت وحققت". بدل "عملت في" اكتب "طوّرت وساهمت".\nاستخدم أفعال حركة تبين إنجازك، مو مجرد وصف لمهامك.\nنكتب لك سيرة تصنع فرق فعلي — البايو.` },
+        { id: "d4_v2", title: "الفيديو 2 (تسويقي)", content: `خايف من الفرز الآلي للشركات الكبرى؟ فعلاً خوفك بمحله — 75% من السير تنرفض قبل حتى يقراها إنسان.\nالسبب غالباً كلمات مفتاحية ناقصة أو تنسيق غلط.\nنضمن لك تتخطى هذا النظام بذكاء.\nلا تخاطر بمستقبلك، اطلبها الآن — البايو.` },
+        { id: "d4_v3", title: "الفيديو 3 (تعليمي)", content: `عندك فجوة وظيفية (انقطاع عن العمل) وقلقان منها؟\nالـ HR ممكن يشوفها نقطة قوة، بس بشرط تذكر وش سويت بهالفترة: دورة، عمل حر، مشروع شخصي.\nالانقطاع للتعلم أفضل بكثير من الانقطاع للفراغ.\nنرتب لك خبراتك بذكاء — البايو.` }
+      ]
+    },
+    {
+      day: "اليوم الخامس: تفاصيل تصنع الفرق",
+      videos: [
+        { id: "d5_v1", title: "الفيديو 1 (تعليمي)", content: `تكتب هواياتك في السيرة؟ قراءة، سباحة، سفر — صراحة الـ HR ما يهمه هذا.\nاكتب هوايات تدعم مجالك: كتابة تقنية لو مبرمج، تصميم لو مصمم.\nما عندك شي يدعم الوظيفة؟ احذف القسم كامل ووفر مساحة.\nنجهز لك سيرة خالية من الحشو — البايو.` },
+        { id: "d5_v2", title: "الفيديو 2 (تسويقي)", content: `ليش تطلب سيرتك من عندنا بالذات؟\nتصميم متوافق مع أنظمة الـ ATS، كتابة تبرز إنجازاتك مو بس مهامك، وتسليم سريع بملفات جاهزة للطباعة والإرسال.\nاستثمر في فرصتك الوظيفية — البايو.` },
+        { id: "d5_v3", title: "الفيديو 3 (تعليمي)", content: `يسألك الـ HR "كم الراتب المتوقع؟"\nرقم محدد ممكن يظلمك براتب أقل من قيمتك، ورقم عالي ممكن يستبعدونك على طول.\nالأذكى: "أنا مهتم بمعرفة ميزانيتكم المخصصة لهذا المسمى."\nتجهز للمقابلة بسيرة تخليك تفاوض بقوة — البايو.` }
+      ]
+    },
+    {
+      day: "اليوم السادس: أخطاء شائعة",
+      videos: [
+        { id: "d6_v1", title: "الفيديو 1 (تعليمي)", content: `كاتب خبرة "كاشير" وأنت تقدم على وظيفة "مهندس"؟\nاحذف كل خبرة ما لها علاقة بمجالك الحالي. الـ HR يدور على الصلة، مو على الكثرة.\nنصيغ لك خبراتك باحترافية — البايو.` },
+        { id: "d6_v2", title: "الفيديو 2 (تسويقي)", content: `متخرج جديد وما عندك خبرة؟ تعتقد سيرتك بتطلع فاضية؟\nنقدر نحول مشروع تخرجك، تطوعك، ودوراتك إلى خبرة عملية حقيقية على الورق.\nابدأ حياتك المهنية بقوة — اطلب سيرتك من البايو.` },
+        { id: "d6_v3", title: "الفيديو 3 (تعليمي)", content: `كيف تتابع بعد المقابلة بدون ما تكون مزعج؟\nأرسل إيميل شكر خلال 24 ساعة. لا تتصل كل يوم تسأل "بلكونني؟". انتظر المدة اللي حددوها، وبعدها إيميل متابعة واحد بس.\nأوراقك القوية هي اللي تتكلم عنك — سيرتك من البايو.` }
+      ]
+    },
+    {
+      day: "اليوم السابع: إغلاق الأسبوع بقوة",
+      videos: [
+        { id: "d7_v1", title: "الفيديو 1 (تعليمي)", content: `خطأ إملائي واحد في سيرتك ممكن يعني استبعاد كامل.\nالـ HR يشوفه دليل على ضعف تركيزك، وحتى لو خبرتك ممتازة، هالغلطة تخرب الانطباع.\nراجع سيرتك مرتين، وخل شخص ثاني يقراها لك.\nأو ريح راسك وخلنا نراجعها لك — البايو.` },
+        { id: "d7_v2", title: "الفيديو 2 (تسويقي)", content: `متردد تطلب تعديل سيرتك وتأجل الموضوع كل يوم؟\nوظيفة أحلامك ممكن تنزل بكرا وسيرتك مو جاهزة — لا تفوتها بسبب تسويف.\nاستلم سيرتك جاهزة للمنافسة خلال أيام.\nاطلبها من البايو، وسيرتك علينا.` },
+        { id: "d7_v3", title: "الفيديو 3 (تعليمي)", content: `ملخص سريع: كيف تضمن اتصال الـ HR؟\nسيرة بتنسيق بسيط أبيض وأسود بدون جداول، ملف لينكد إن محدث بكلمات مفتاحية لمجالك، وتقديم مستمر بدون يأس من الرفض.\nاختصر نص الطريق — اطلب سيرتك من البايو.` }
+      ]
+    }
+  ];
 
   // Fetch ideas + B-Roll manifest on mount
   useEffect(() => {
@@ -835,8 +910,12 @@ ${currentAdvice}
           >🎬 فيديو Reels</button>
           <button 
             onClick={() => setAppMode('analytics')} 
-            style={{ flex: '1 1 100%', padding: '10px', background: appMode === 'analytics' ? '#8b5cf6' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
-          >📊 تحليلات الحسابات (Dashboard)</button>
+            style={{ flex: '1 1 45%', padding: '10px', background: appMode === 'analytics' ? '#8b5cf6' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+          >📊 تحليلات (Dashboard)</button>
+          <button 
+            onClick={() => setAppMode('calendar')} 
+            style={{ flex: '1 1 45%', padding: '10px', background: appMode === 'calendar' ? '#5B8C3E' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+          >📅 خطة الـ 7 أيام</button>
         </div>
 
         {appMode === 'analytics' ? (
@@ -1500,6 +1579,90 @@ ${currentAdvice}
             
             <div style={{ marginTop: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
               *هذه بيانات تجريبية (Mock Data). سيتم برمجتها لتسحب أرقامك الحقيقية لاحقاً.
+            </div>
+          </div>
+        ) : appMode === 'calendar' ? (
+          <div style={{ background: '#F2EEE6', borderRadius: '20px', padding: '0', overflow: 'hidden' }} dir="rtl">
+            {/* Calendar Header & Progress */}
+            <div style={{ background: '#F2EEE6', padding: '20px', borderBottom: '1px solid rgba(45,42,38,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2D2A26', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>🎯 سيرتك علينا - خطة الـ 7 أيام</h2>
+                  <p style={{ fontSize: '13px', color: 'rgba(45,42,38,0.6)', margin: '5px 0 0 0' }}>تقدمك محفوظ تلقائياً 🚀</p>
+                </div>
+                <div style={{ textAlign: 'center', background: '#2D2A26', color: '#F2EEE6', padding: '8px 16px', borderRadius: '12px' }}>
+                  <span style={{ display: 'block', fontSize: '22px', fontWeight: 'bold', color: '#5B8C3E', lineHeight: '1' }}>
+                    {Object.values(calendarProgress).filter(Boolean).length}<span style={{ fontSize: '12px', color: 'rgba(242,238,230,0.6)' }}>/21</span>
+                  </span>
+                  <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>منشور جاهز</span>
+                </div>
+              </div>
+              {/* Progress Bar */}
+              <div style={{ width: '100%', background: 'rgba(45,42,38,0.1)', borderRadius: '999px', height: '12px', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ background: '#5B8C3E', height: '12px', borderRadius: '999px', transition: 'width 0.7s ease', width: `${Math.round((Object.values(calendarProgress).filter(Boolean).length / 21) * 100)}%` }}></div>
+              </div>
+              <p style={{ fontSize: '12px', textAlign: 'left', color: '#5B8C3E', fontWeight: 'bold', marginTop: '4px' }}>{Math.round((Object.values(calendarProgress).filter(Boolean).length / 21) * 100)}% مكتمل</p>
+            </div>
+
+            {/* Days List */}
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {CONTENT_PLAN.map((dayPlan, dayIndex) => (
+                <div key={dayIndex} style={{ background: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(45,42,38,0.05)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                  {/* Day Header */}
+                  <div style={{ background: '#2D2A26', color: '#F2EEE6', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '18px' }}>📅</span>
+                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>{dayPlan.day}</h3>
+                  </div>
+                  {/* Videos List */}
+                  <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {dayPlan.videos.map((video) => {
+                      const isCompleted = !!calendarProgress[video.id];
+                      return (
+                        <div key={video.id} style={{
+                          position: 'relative', overflow: 'hidden', borderRadius: '12px', transition: 'all 0.3s',
+                          border: isCompleted ? '1px solid rgba(91,140,62,0.3)' : '1px solid rgba(45,42,38,0.1)',
+                          background: isCompleted ? 'rgba(91,140,62,0.05)' : 'white',
+                          boxShadow: isCompleted ? 'inset 0 1px 3px rgba(0,0,0,0.05)' : '0 1px 4px rgba(0,0,0,0.06)'
+                        }}>
+                          {isCompleted && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', background: '#5B8C3E' }}></div>}
+                          <div style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '12px' }}>
+                              <h4 style={{ fontWeight: 'bold', fontSize: '15px', color: isCompleted ? '#5B8C3E' : '#2D2A26', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {isCompleted && <span>🔥</span>}
+                                {video.title}
+                              </h4>
+                              <button onClick={() => toggleCalendarItem(video.id)} style={{
+                                flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', border: 'none', cursor: 'pointer', transition: 'all 0.3s',
+                                background: isCompleted ? '#5B8C3E' : '#F2EEE6', color: isCompleted ? 'white' : '#2D2A26',
+                                boxShadow: isCompleted ? '0 2px 8px rgba(91,140,62,0.3)' : 'none'
+                              }}>
+                                {isCompleted ? '✅ منشور!' : '⭕ تحديد كمنشور'}
+                              </button>
+                            </div>
+                            <div style={{
+                              padding: '14px', borderRadius: '10px', fontSize: '14px', lineHeight: '1.8', whiteSpace: 'pre-wrap', fontWeight: '500', transition: 'all 0.3s',
+                              background: isCompleted ? 'rgba(91,140,62,0.08)' : 'rgba(242,238,230,0.5)', color: isCompleted ? 'rgba(45,42,38,0.6)' : '#2D2A26'
+                            }}>
+                              {video.content}
+                            </div>
+                            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                              <button onClick={() => { copyText(video.content); alert('تم نسخ النص بنجاح! 📋'); }} style={{
+                                fontSize: '12px', fontWeight: 'bold', color: 'rgba(45,42,38,0.5)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                              }}>
+                                نسخ النص للمونتاج ✂️
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center', padding: '20px', color: 'rgba(45,42,38,0.4)', fontSize: '13px', fontWeight: '600' }}>
+              تم برمجة هذه الشاشة لـ <span style={{ color: '#5B8C3E' }}>سيرتك علينا</span> 🚀<br/>
+              (تقدمك محفوظ تلقائياً حتى لو قفلت الصفحة)
             </div>
           </div>
         ) : null}
