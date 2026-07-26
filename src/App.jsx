@@ -1667,77 +1667,81 @@ ${currentAdvice}
             </div>
           </div>
         ) : appMode === 'calendar' ? (
-          <div style={{ background: '#F2EEE6', borderRadius: '20px', padding: '0', overflow: 'hidden' }} dir="rtl">
+          <div style={{ background: '#F2EEE6', borderRadius: '20px', padding: '0', overflow: 'hidden', width: '100%', maxWidth: '1200px', margin: '0 auto', boxShadow: '0 10px 40px rgba(0,0,0,0.15)' }} dir="rtl">
             {/* Calendar Header & Progress */}
-            <div style={{ background: '#F2EEE6', padding: '20px', borderBottom: '1px solid rgba(45,42,38,0.1)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <div style={{ background: '#F2EEE6', padding: '24px 30px', borderBottom: '1px solid rgba(45,42,38,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
                 <div>
-                  <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#2D2A26', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>🎯 سيرتك علينا - خطة الـ 7 أيام</h2>
-                  <p style={{ fontSize: '13px', color: 'rgba(45,42,38,0.6)', margin: '5px 0 0 0' }}>تقدمك محفوظ تلقائياً 🚀</p>
+                  <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#2D2A26', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>🎯 سيرتك علينا - خطة الـ 7 أيام</h2>
+                  <p style={{ fontSize: '14px', color: 'rgba(45,42,38,0.7)', margin: '6px 0 0 0' }}>تقدمك محفوظ تلقائياً 🚀</p>
                 </div>
-                <div style={{ textAlign: 'center', background: '#2D2A26', color: '#F2EEE6', padding: '8px 16px', borderRadius: '12px' }}>
-                  <span style={{ display: 'block', fontSize: '22px', fontWeight: 'bold', color: '#5B8C3E', lineHeight: '1' }}>
-                    {Object.values(calendarProgress).filter(Boolean).length}<span style={{ fontSize: '12px', color: 'rgba(242,238,230,0.6)' }}>/21</span>
+                <div style={{ textAlign: 'center', background: '#2D2A26', color: '#F2EEE6', padding: '10px 22px', borderRadius: '14px', boxShadow: '0 4px 12px rgba(45,42,38,0.15)' }}>
+                  <span style={{ display: 'block', fontSize: '26px', fontWeight: 'bold', color: '#5B8C3E', lineHeight: '1' }}>
+                    {Object.values(calendarProgress).filter(Boolean).length}<span style={{ fontSize: '14px', color: 'rgba(242,238,230,0.6)' }}>/21</span>
                   </span>
-                  <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>منشور جاهز</span>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>منشور جاهز</span>
                 </div>
               </div>
               {/* Progress Bar */}
-              <div style={{ width: '100%', background: 'rgba(45,42,38,0.1)', borderRadius: '999px', height: '12px', overflow: 'hidden', position: 'relative' }}>
-                <div style={{ background: '#5B8C3E', height: '12px', borderRadius: '999px', transition: 'width 0.7s ease', width: `${Math.round((Object.values(calendarProgress).filter(Boolean).length / 21) * 100)}%` }}></div>
+              <div style={{ width: '100%', background: 'rgba(45,42,38,0.1)', borderRadius: '999px', height: '14px', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ background: '#5B8C3E', height: '14px', borderRadius: '999px', transition: 'width 0.7s ease', width: `${Math.round((Object.values(calendarProgress).filter(Boolean).length / 21) * 100)}%` }}></div>
               </div>
-              <p style={{ fontSize: '12px', textAlign: 'left', color: '#5B8C3E', fontWeight: 'bold', marginTop: '4px' }}>{Math.round((Object.values(calendarProgress).filter(Boolean).length / 21) * 100)}% مكتمل</p>
+              <p style={{ fontSize: '13px', textAlign: 'left', color: '#5B8C3E', fontWeight: 'bold', marginTop: '6px', margin: '6px 0 0 0' }}>{Math.round((Object.values(calendarProgress).filter(Boolean).length / 21) * 100)}% مكتمل</p>
             </div>
 
             {/* Days List */}
-            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               {CONTENT_PLAN.map((dayPlan, dayIndex) => (
-                <div key={dayIndex} style={{ background: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(45,42,38,0.05)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div key={dayIndex} style={{ background: 'white', borderRadius: '18px', overflow: 'hidden', border: '1px solid rgba(45,42,38,0.08)', boxShadow: '0 4px 15px rgba(0,0,0,0.04)' }}>
                   {/* Day Header */}
-                  <div style={{ background: '#2D2A26', color: '#F2EEE6', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '18px' }}>📅</span>
-                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>{dayPlan.day}</h3>
+                  <div style={{ background: '#2D2A26', color: '#F2EEE6', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '20px' }}>📅</span>
+                      <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>{dayPlan.day}</h3>
+                    </div>
+                    <span style={{ fontSize: '12px', background: 'rgba(242,238,230,0.15)', padding: '4px 10px', borderRadius: '20px', color: '#F2EEE6' }}>3 فيديوهات</span>
                   </div>
-                  {/* Videos List */}
-                  <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Videos List - Desktop Grid */}
+                  <div style={{ padding: '18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: '16px' }}>
                     {dayPlan.videos.map((video) => {
                       const isCompleted = !!calendarProgress[video.id];
                       return (
                         <div key={video.id} style={{
-                          position: 'relative', overflow: 'hidden', borderRadius: '12px', transition: 'all 0.3s',
-                          border: isCompleted ? '1px solid rgba(91,140,62,0.3)' : '1px solid rgba(45,42,38,0.1)',
-                          background: isCompleted ? 'rgba(91,140,62,0.05)' : 'white',
-                          boxShadow: isCompleted ? 'inset 0 1px 3px rgba(0,0,0,0.05)' : '0 1px 4px rgba(0,0,0,0.06)'
+                          position: 'relative', overflow: 'hidden', borderRadius: '14px', transition: 'all 0.3s',
+                          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                          border: isCompleted ? '1px solid rgba(91,140,62,0.4)' : '1px solid rgba(45,42,38,0.12)',
+                          background: isCompleted ? 'rgba(91,140,62,0.05)' : '#FAFAFA',
+                          boxShadow: isCompleted ? 'inset 0 1px 3px rgba(0,0,0,0.05)' : '0 2px 8px rgba(0,0,0,0.04)'
                         }}>
-                          {isCompleted && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', background: '#5B8C3E' }}></div>}
-                          <div style={{ padding: '16px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '12px' }}>
+                          {isCompleted && <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '5px', background: '#5B8C3E' }}></div>}
+                          <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '10px' }}>
                               <h4 style={{ fontWeight: 'bold', fontSize: '15px', color: isCompleted ? '#5B8C3E' : '#2D2A26', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {isCompleted && <span>🔥</span>}
                                 {video.title}
                               </h4>
                               <button onClick={() => toggleCalendarItem(video.id)} style={{
-                                flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', border: 'none', cursor: 'pointer', transition: 'all 0.3s',
-                                background: isCompleted ? '#5B8C3E' : '#F2EEE6', color: isCompleted ? 'white' : '#2D2A26',
+                                flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', border: 'none', cursor: 'pointer', transition: 'all 0.3s',
+                                background: isCompleted ? '#5B8C3E' : '#EAE6DF', color: isCompleted ? 'white' : '#2D2A26',
                                 boxShadow: isCompleted ? '0 2px 8px rgba(91,140,62,0.3)' : 'none'
                               }}>
                                 {isCompleted ? '✅ منشور!' : '⭕ تحديد كمنشور'}
                               </button>
                             </div>
                             <div style={{
-                              padding: '14px', borderRadius: '10px', fontSize: '14px', lineHeight: '1.8', whiteSpace: 'pre-wrap', fontWeight: '500', transition: 'all 0.3s',
-                              background: isCompleted ? 'rgba(91,140,62,0.08)' : 'rgba(242,238,230,0.5)', color: isCompleted ? 'rgba(45,42,38,0.6)' : '#2D2A26'
+                              padding: '14px', borderRadius: '10px', fontSize: '13px', lineHeight: '1.8', whiteSpace: 'pre-wrap', fontWeight: '500', transition: 'all 0.3s', flexGrow: 1, marginBottom: '14px',
+                              background: isCompleted ? 'rgba(91,140,62,0.08)' : 'white', color: isCompleted ? 'rgba(45,42,38,0.7)' : '#2D2A26', border: '1px solid rgba(0,0,0,0.04)'
                             }}>
                               {video.content}
                             </div>
-                            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                               <button onClick={() => { setVideoTopic(video.content); setAppMode('video'); }} style={{
-                                fontSize: '13px', fontWeight: 'bold', color: 'white', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(245,158,11,0.3)'
+                                fontSize: '12px', fontWeight: 'bold', color: 'white', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(245,158,11,0.25)'
                               }}>
                                 🎬 إنتاج الفيديو الآن
                               </button>
                               <button onClick={() => { copyText(video.content); alert('تم نسخ النص بنجاح! 📋'); }} style={{
-                                fontSize: '12px', fontWeight: 'bold', color: 'rgba(45,42,38,0.5)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                                fontSize: '12px', fontWeight: 'bold', color: 'rgba(45,42,38,0.6)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
                               }}>
                                 نسخ النص ✂️
                               </button>
@@ -1750,7 +1754,7 @@ ${currentAdvice}
                 </div>
               ))}
             </div>
-            <div style={{ textAlign: 'center', padding: '20px', color: 'rgba(45,42,38,0.4)', fontSize: '13px', fontWeight: '600' }}>
+            <div style={{ textAlign: 'center', padding: '24px', color: 'rgba(45,42,38,0.5)', fontSize: '13px', fontWeight: '600' }}>
               تم برمجة هذه الشاشة لـ <span style={{ color: '#5B8C3E' }}>سيرتك علينا</span> 🚀<br/>
               (تقدمك محفوظ تلقائياً حتى لو قفلت الصفحة)
             </div>
