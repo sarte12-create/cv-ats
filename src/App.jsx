@@ -7,6 +7,9 @@ import './index.css';
 const apiKeysStr = import.meta.env.VITE_GEMINI_API_KEYS || import.meta.env.VITE_GEMINI_API_KEY;
 const API_KEYS = apiKeysStr ? apiKeysStr.split(',') : [];
 
+// Unified Cloud Sync Endpoint for @seartk3 cross-device synchronization
+const CLOUD_SYNC_URL = 'https://jsonblob.com/api/jsonBlob/019f9c55-ef08-7ab2-a867-fd66d581b62d';
+
 // Helper function to extract JSON robustly
 const extractJSON = (rawText) => {
   const match = rawText.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
@@ -97,7 +100,25 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('seartk_calendar_progress') || '{}'); } catch { return {}; }
   });
   const [activeCalendarDay, setActiveCalendarDay] = useState('all');
+  const [syncStatus, setSyncStatus] = useState('جاري مزامنة السحابة... ☁️');
   
+  // Fetch cloud progress on mount to sync across all user devices
+  useEffect(() => {
+    fetch(CLOUD_SYNC_URL)
+      .then(r => r.json())
+      .then(cloudData => {
+        if (cloudData && typeof cloudData === 'object') {
+          setCalendarProgress(prev => {
+            const merged = { ...prev, ...cloudData };
+            localStorage.setItem('seartk_calendar_progress', JSON.stringify(merged));
+            return merged;
+          });
+          setSyncStatus('مربوط سحابياً ☁️✅');
+        }
+      })
+      .catch(() => setSyncStatus('محلي (محفوظ في جهازك) 📱'));
+  }, []);
+
   const incrementProduction = () => {
     const newCount = productionCount + 1;
     setProductionCount(newCount);
@@ -108,6 +129,43 @@ export default function App() {
     const newProgress = { ...calendarProgress, [videoId]: !calendarProgress[videoId] };
     setCalendarProgress(newProgress);
     localStorage.setItem('seartk_calendar_progress', JSON.stringify(newProgress));
+    setSyncStatus('جاري الحفظ بالسحابة... ⏳');
+    fetch(CLOUD_SYNC_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(newProgress)
+    }).then(() => {
+      setSyncStatus('مربوط سحابياً ☁️✅');
+    }).catch(() => {
+      setSyncStatus('محفوظ محلياً 📱');
+    });
+  };
+
+  const exportSyncCode = () => {
+    const code = btoa(JSON.stringify(calendarProgress));
+    copyText(code);
+    alert('تم نسخ رمز التزامن بنجاح! 📋\nيمكنك لصقه في أجهزتك الأخرى لتحديث تقدمك فوراً.');
+  };
+
+  const importSyncCode = () => {
+    const input = prompt('أدخل رمز التزامن المنسوخ من جهازك الآخر:');
+    if (!input) return;
+    try {
+      const parsed = JSON.parse(atob(input.trim()));
+      if (typeof parsed === 'object') {
+        const merged = { ...calendarProgress, ...parsed };
+        setCalendarProgress(merged);
+        localStorage.setItem('seartk_calendar_progress', JSON.stringify(merged));
+        fetch(CLOUD_SYNC_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(merged)
+        });
+        alert('تم استيراد ومزامنة التقدم بنجاح! 🎉');
+      }
+    } catch {
+      alert('رمز التزامن غير صالح!');
+    }
   };
 
   const copyText = (text) => {
@@ -1674,7 +1732,11 @@ ${currentAdvice}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
                 <div>
                   <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#2D2A26', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>🎯 سيرتك علينا - خطة الـ 7 أيام</h2>
-                  <p style={{ fontSize: '14px', color: 'rgba(45,42,38,0.7)', margin: '6px 0 0 0' }}>حدد اليوم وتتبع المتبقي لنشر الفيديوهات 🚀</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '12px', background: 'rgba(91,140,62,0.15)', color: '#5B8C3E', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold' }}>{syncStatus}</span>
+                    <button onClick={exportSyncCode} style={{ background: 'none', border: '1px solid rgba(45,42,38,0.2)', padding: '3px 8px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', fontWeight: '600', color: '#2D2A26' }}>📋 نسخ رمز التزامن</button>
+                    <button onClick={importSyncCode} style={{ background: 'none', border: '1px solid rgba(45,42,38,0.2)', padding: '3px 8px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', fontWeight: '600', color: '#2D2A26' }}>📥 استيراد رمز</button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <div style={{ textAlign: 'center', background: '#2D2A26', color: '#F2EEE6', padding: '10px 20px', borderRadius: '14px', boxShadow: '0 4px 12px rgba(45,42,38,0.15)' }}>
