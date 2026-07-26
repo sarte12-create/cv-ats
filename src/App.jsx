@@ -1295,11 +1295,16 @@ ${currentAdvice}
             <label style={{ color: 'white', fontSize: '12px', display: 'block', marginBottom: '6px' }}>خلفية الفيديو:</label>
             {brollList.length > 0 && (
               <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                {brollList.map((v, i) => (
-                  <button key={i} onClick={() => setActiveBroll(v.file)} style={{ padding: '5px 8px', background: activeBroll === v.file ? '#e92a67' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '10px' }}>
-                    🎬 {v.name}
-                  </button>
-                ))}
+                {brollList.map((v, i) => {
+                  const clipNum = v.num || (v.id ? v.id.replace('مقطع-', '') : i + 1);
+                  return (
+                    <button key={i} onClick={() => setActiveBroll(v.file)} style={{ padding: '5px 8px', background: activeBroll === v.file ? '#e92a67' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span>🎬</span>
+                      <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>[{clipNum}]</span>
+                      <span>{v.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
             <input type="file" accept="video/*" onChange={(e) => { if(e.target.files?.[0]) setActiveBroll(URL.createObjectURL(e.target.files[0])); }} style={{ color: 'white', fontSize: '11px', width: '100%', marginBottom: '15px' }} />
