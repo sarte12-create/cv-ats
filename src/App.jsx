@@ -910,8 +910,8 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         video.style.position = 'fixed';
         video.style.bottom = '15px';
         video.style.left = '15px';
-        video.style.width = '120px';
-        video.style.height = '213px';
+        video.style.width = '320px';
+        video.style.height = '568px';
         video.style.zIndex = '99999';
         video.style.borderRadius = '12px';
         video.style.border = '2px solid #ec4899';
@@ -978,19 +978,14 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         }
 
         const drawSingleCanvasFrame = (snapshot) => {
-          // Clear previous frame
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-          // Draw B-Roll Background
-          ctx.globalAlpha = 0.7;
+          // 1. Draw B-Roll Background (100% opaque, ultra fast direct GPU blit - NO clearRect, NO globalAlpha=0.7)
           ctx.drawImage(video, offX, offY, dW, dH);
-          ctx.globalAlpha = 1.0;
 
-          // Draw Dark Overlay for contrast (single layer)
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          // 2. Draw Dark Overlay for contrast
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // Draw Stacking Frame Snapshot
+          // 3. Draw Stacking Frame Snapshot
           if (snapshot) {
             const sW = (snapshot.width / 2) * baseScale;
             const sH = (snapshot.height / 2) * baseScale;
@@ -1023,30 +1018,56 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
         recorder.start();
 
-        const TARGET_FPS = 30;
-        const FRAME_INTERVAL = 1000 / TARGET_FPS; // 33.33ms per frame
+        // Cumulative step transition thresholds
+        const totalDuration = durations.reduce((a, b) => a + b, 0);
+        const stepThresholds = [];
+        let accum = 0;
+        for (let d of durations) {
+          accum += d;
+          stepThresholds.push(accum);
+        }
 
-        // Render each step according to its duration with steady 30 FPS pacing to prevent any stutter/lag
-        for (let s = 0; s < steps.length; s++) {
-          if (bulkCancelRef.current) break;
-          const stepEndTime = Date.now() + durations[s];
-          const snapshot = frames[s];
-          let lastFrameTime = performance.now();
+        const renderStartTime = performance.now();
 
-          while (Date.now() < stepEndTime) {
-            if (bulkCancelRef.current) break;
-
-            const now = performance.now();
-            const elapsed = now - lastFrameTime;
-
-            if (elapsed >= FRAME_INTERVAL) {
-              lastFrameTime = now - (elapsed % FRAME_INTERVAL);
-              drawSingleCanvasFrame(snapshot);
+        // Smooth continuous 60fps/30fps animation loop with zero promise overhead
+        await new Promise((resolve) => {
+          const renderLoop = () => {
+            if (bulkCancelRef.current) {
+              try { video.pause(); } catch(e) {}
+              recorder.stop();
+              resolve();
+              return;
             }
 
-            await new Promise(r => requestAnimationFrame(r));
-          }
-        }
+            const elapsed = performance.now() - renderStartTime;
+            if (elapsed >= totalDuration) {
+              try { video.pause(); } catch(e) {}
+              recorder.stop();
+              resolve();
+              return;
+            }
+
+            // Keep video looping smoothly without freeze if shorter than totalDuration
+            if (video.ended || (video.duration > 0 && video.currentTime >= video.duration - 0.08)) {
+              video.currentTime = 0;
+              try { video.play(); } catch(e) {}
+            }
+
+            // Determine which step snapshot to draw based on elapsed time
+            let currentStepIdx = 0;
+            for (let s = 0; s < stepThresholds.length; s++) {
+              if (elapsed < stepThresholds[s]) {
+                currentStepIdx = s;
+                break;
+              }
+            }
+
+            drawSingleCanvasFrame(frames[currentStepIdx]);
+            requestAnimationFrame(renderLoop);
+          };
+
+          requestAnimationFrame(renderLoop);
+        });
 
         try { video.pause(); } catch(e) {}
         recorder.stop();
@@ -1409,17 +1430,16 @@ ${currentAdvice}
 
       const baseScale = W / 400; // 1080 / 400 = 2.7
 
-      // Draw a single frame
+      // Draw a single frame (100% opaque, ultra fast direct GPU blit)
       const drawFrame = (stepIdx) => {
-        // Clear canvas to prevent alpha stacking
-        ctx.clearRect(0, 0, W, H);
-
-        // B-Roll background
-        ctx.globalAlpha = 0.7;
+        // 1. B-Roll background
         ctx.drawImage(videoEl, 0, 0, W, H);
-        ctx.globalAlpha = 1.0;
 
-        // Draw snapshot overlay
+        // 2. Dark Overlay for contrast
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(0, 0, W, H);
+
+        // 3. Draw snapshot overlay
         const snapshot = frames[stepIdx];
         if (snapshot) {
            const sW = (snapshot.width / 2) * baseScale;
@@ -1452,27 +1472,46 @@ ${currentAdvice}
       };
       rec.start();
 
-      const TARGET_FPS = 30;
-      const FRAME_INTERVAL = 1000 / TARGET_FPS;
+      // Cumulative step transition thresholds
+      const totalDuration = durations.reduce((a, b) => a + b, 0);
+      const stepThresholds = [];
+      let accum = 0;
+      for (let d of durations) {
+        accum += d;
+        stepThresholds.push(accum);
+      }
 
-      setLoadingMsg("جاري تصدير الفيديو النهائي... ⏳");
-      for (let s = 0; s < steps.length; s++) {
-        const endTime = Date.now() + durations[s];
-        let lastFrameTime = performance.now();
+      setLoadingMsg("جاري تصدير الفيديو النهائي بسلاسة تامة... ⏳");
+      const recStartTime = performance.now();
 
-        while (Date.now() < endTime) {
-          const now = performance.now();
-          const elapsed = now - lastFrameTime;
-
-          if (elapsed >= FRAME_INTERVAL) {
-            lastFrameTime = now - (elapsed % FRAME_INTERVAL);
-            drawFrame(s);
+      await new Promise((resolve) => {
+        const animLoop = () => {
+          const elapsed = performance.now() - recStartTime;
+          if (elapsed >= totalDuration) {
+            rec.stop();
+            resolve();
+            return;
           }
 
-          await new Promise(r => requestAnimationFrame(r));
-        }
-      }
-      rec.stop();
+          if (videoEl.ended || (videoEl.duration > 0 && videoEl.currentTime >= videoEl.duration - 0.08)) {
+            videoEl.currentTime = 0;
+            try { videoEl.play(); } catch(e) {}
+          }
+
+          let currentStep = 0;
+          for (let s = 0; s < stepThresholds.length; s++) {
+            if (elapsed < stepThresholds[s]) {
+              currentStep = s;
+              break;
+            }
+          }
+
+          drawFrame(currentStep);
+          requestAnimationFrame(animLoop);
+        };
+
+        requestAnimationFrame(animLoop);
+      });
     } catch(e) {
       console.error(e); alert('فشل التصدير: ' + (e?.message || '')); setLoading(false);
     }
