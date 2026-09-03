@@ -59,15 +59,20 @@ function videoRenderPlugin() {
 
             // 4. Build FFmpeg filter_complex graph
             let filterGraph = `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,drawbox=x=0:y=0:w=1080:h=1920:color=black@0.4:t=fill[v_bg];`;
-            let lastV = 'v_bg';
 
+            // Scale every overlay frame to exact 1080x1920 canvas coordinates
+            for (let i = 0; i < framePaths.length; i++) {
+              filterGraph += `[${i + 1}:v]scale=1080:1920[ov_${i}];`;
+            }
+
+            let lastV = 'v_bg';
             for (let i = 0; i < framePaths.length; i++) {
               const startT = i === 0 ? 0 : thresholds[i - 1].toFixed(3);
               const endT = thresholds[i].toFixed(3);
               const nextV = `v_${i}`;
               const isLast = i === framePaths.length - 1;
               const enableCondition = isLast ? `gte(t,${startT})` : `between(t,${startT},${endT})`;
-              filterGraph += `[${lastV}][${i + 1}:v]overlay=0:0:enable='${enableCondition}'${isLast ? '[vout]' : `[${nextV}];`}`;
+              filterGraph += `[${lastV}][ov_${i}]overlay=0:0:enable='${enableCondition}'${isLast ? '[vout]' : `[${nextV}];`}`;
               lastV = nextV;
             }
 

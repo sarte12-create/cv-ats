@@ -893,7 +893,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
           if (bulkCancelRef.current) break;
           setBulkActiveStackStep(steps[s]);
           await new Promise(r => setTimeout(r, 140)); // wait for DOM to update
-          const snapshotCanvas = await htmlToImage.toCanvas(stagingEl, { backgroundColor: 'transparent', pixelRatio: 2 });
+          const snapshotCanvas = await htmlToImage.toCanvas(stagingEl, { backgroundColor: 'transparent', pixelRatio: 2.7 });
           frames.push(snapshotCanvas);
         }
 
@@ -1489,7 +1489,7 @@ ${currentAdvice}
       for (let s = 0; s < steps.length; s++) {
         setCurrentLine(steps[s]); // update UI
         await new Promise(r => setTimeout(r, 150)); // wait for React render
-        const canvasSnapshot = await htmlToImage.toCanvas(overlayEl, { backgroundColor: 'transparent', pixelRatio: 2 });
+        const canvasSnapshot = await htmlToImage.toCanvas(overlayEl, { backgroundColor: 'transparent', pixelRatio: 2.7 });
         frames.push(canvasSnapshot);
       }
       
