@@ -23,7 +23,7 @@ function videoRenderPlugin() {
         req.on('end', async () => {
           const tempDir = path.resolve(process.cwd(), '.temp_render_' + Date.now());
           try {
-            const { broll, durations, frames, title } = JSON.parse(body);
+            const { broll, durations, frames, title, audioTrack } = JSON.parse(body);
             if (!broll || !durations || !frames || frames.length === 0) {
               res.statusCode = 400;
               res.end(JSON.stringify({ error: 'Missing parameters' }));
@@ -76,10 +76,25 @@ function videoRenderPlugin() {
               lastV = nextV;
             }
 
+            // 5. Handle Background Soundtrack (if requested)
+            let audioInputArg = '';
+            let mapAudioArg = '';
+            if (audioTrack && audioTrack !== 'none') {
+              const cleanAudio = audioTrack.startsWith('/') ? audioTrack.substring(1) : audioTrack;
+              const audioPath = path.resolve(process.cwd(), 'public', cleanAudio);
+              if (fs.existsSync(audioPath)) {
+                const audioIdx = framePaths.length + 1;
+                audioInputArg = `-stream_loop -1 -i "${audioPath}"`;
+                const fadeOutStart = Math.max(0, totalDurationSec - 1.2).toFixed(2);
+                filterGraph += `;[${audioIdx}:a]volume=0.35,afade=t=in:st=0:d=0.5,afade=t=out:st=${fadeOutStart}:d=1.2[aout]`;
+                mapAudioArg = '-map "[aout]" -c:a aac -b:a 192k';
+              }
+            }
+
             const outPath = path.join(tempDir, 'output.mp4');
             const inputArgs = framePaths.map(p => `-i "${p}"`).join(' ');
 
-            const ffmpegCmd = `ffmpeg -y -stream_loop -1 -i "${brollPath}" ${inputArgs} -t ${totalDurationSec.toFixed(2)} -filter_complex "${filterGraph}" -map "[vout]" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p "${outPath}"`;
+            const ffmpegCmd = `ffmpeg -y -stream_loop -1 -i "${brollPath}" ${inputArgs} ${audioInputArg} -t ${totalDurationSec.toFixed(2)} -filter_complex "${filterGraph}" -map "[vout]" ${mapAudioArg} -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p "${outPath}"`;
 
             await execPromise(ffmpegCmd);
 

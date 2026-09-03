@@ -51,7 +51,26 @@ const executeWithFallback = async (promptMsg) => {
   throw new Error("جميع المفاتيح استنفذت الليمت أو غير صالحة. يرجى الانتظار قليلاً أو إضافة مفاتيح جديدة. الخطأ الأخير: " + lastError.message);
 };
 
+export const OFFICIAL_AUDIO_TRACKS = [
+  { id: 'random', name: '🎲 تنويع عشوائي بين الـ 4 أصوات (موصى به)', file: 'random' },
+  { id: 'track_1', name: '🎹 1. Sleep Piano (بيانو سينمائي عميق)', file: '/audio/track_1_sleep_piano.mp3' },
+  { id: 'track_2', name: '🎹 2. Chasing Daylight (بيانو ملهم ومحفز)', file: '/audio/track_2_chasing_daylight.mp3' },
+  { id: 'track_3', name: '🎻 3. Solo Cello Suite (تشيلو سينمائي مهيب)', file: '/audio/track_3_solo_cello.mp3' },
+  { id: 'track_4', name: '🎻 4. Sanctuary Strings (وتريات وسينث غامض)', file: '/audio/track_4_sanctuary_strings.mp3' },
+  { id: 'track_5', name: '🎸 5. Classical Guitar (سولو جيتار كلاسيكي دافئ)', file: '/audio/non_piano_1_classical_guitar.mp3' },
+  { id: 'none', name: '🔇 بدون صوت (فيديو صامت)', file: 'none' }
+];
+
+export const SHUFFLE_AUDIO_TRACKS = [
+  '/audio/track_1_sleep_piano.mp3',
+  '/audio/track_2_chasing_daylight.mp3',
+  '/audio/track_3_solo_cello.mp3',
+  '/audio/track_4_sanctuary_strings.mp3'
+];
+
 export default function App() {
+  const [bulkAudioSetting, setBulkAudioSetting] = useState('random');
+  const [activeAudioTrack, setActiveAudioTrack] = useState('random');
   const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('seartk_auth') === 'true');
   const [passcode, setPasscode] = useState('');
   const [authError, setAuthError] = useState('');
@@ -903,6 +922,12 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         const filename = `Stacking_Reel_${i + 1}_${cleanTitle}.mp4`;
         let videoBlob = null;
 
+        // Resolve audio track for current video
+        let itemAudio = currentItem.audioTrack || bulkAudioSetting;
+        if (itemAudio === 'random') {
+          itemAudio = SHUFFLE_AUDIO_TRACKS[i % SHUFFLE_AUDIO_TRACKS.length];
+        }
+
         // Tier 1: Hardware-accelerated local server engine (Broadcast 60 FPS, 0% CPU stutter, 100% smooth)
         try {
           const base64Frames = frames.map(f => f.toDataURL('image/png'));
@@ -913,7 +938,8 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
               broll: currentItem.broll,
               durations: durations,
               frames: base64Frames,
-              title: filename
+              title: filename,
+              audioTrack: itemAudio
             })
           });
 
@@ -1496,9 +1522,15 @@ ${currentAdvice}
       document.head.removeChild(style);
       setCurrentLine(originalLine); // restore state
 
+      // Resolve audio track for single export
+      let singleAudio = activeAudioTrack;
+      if (singleAudio === 'random') {
+        singleAudio = SHUFFLE_AUDIO_TRACKS[Math.floor(Math.random() * SHUFFLE_AUDIO_TRACKS.length)];
+      }
+
       // 1. Hardware-accelerated local server engine (Broadcast 60 FPS, 0% CPU stutter, 100% smooth)
       try {
-        setLoadingMsg("جاري إنتاج الفيديو فائق السلاسة (60 FPS)... 🎬");
+        setLoadingMsg("جاري إنتاج الفيديو فائق السلاسة مع الموسيقى... 🎬🎵");
         const base64Frames = frames.map(f => f.toDataURL('image/png'));
         const resp = await fetch('/api/render-reel', {
           method: 'POST',
@@ -1507,7 +1539,8 @@ ${currentAdvice}
             broll: activeBroll || '/broll/8.mp4',
             durations: durations,
             frames: base64Frames,
-            title: `seartk_reel_${Date.now()}`
+            title: `seartk_reel_${Date.now()}`,
+            audioTrack: singleAudio
           })
         });
 
@@ -2148,6 +2181,36 @@ ${currentAdvice}
               </div>
             </div>
 
+            {/* AUDIO SETTINGS */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px', marginBottom: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🎵 الموسيقى الخلفية للدفعة:</label>
+                <span style={{ fontSize: '10px', color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '2px 8px', borderRadius: '6px' }}>بدون حقوق ملكية ✅</span>
+              </div>
+              <select
+                value={bulkAudioSetting}
+                onChange={e => {
+                  const val = e.target.value;
+                  setBulkAudioSetting(val);
+                  if (val !== 'random') {
+                    setBulkItems(prev => prev.map(item => ({ ...item, audioTrack: val })));
+                  }
+                }}
+                disabled={isBulkRendering}
+                className="glass-input"
+                style={{ width: '100%', background: '#1e293b', color: 'white', fontSize: '12px', padding: '8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', outline: 'none' }}
+              >
+                {OFFICIAL_AUDIO_TRACKS.map(t => (
+                  <option key={t.id} value={t.file}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', lineHeight: '1.4' }}>
+                💡 خيار <strong>التنويع العشوائي</strong> يوزع الأصوات الـ 4 المعتمدة تلقائياً على كل فيديوهات الدفعة لمنع التكرار!
+              </div>
+            </div>
+
             {/* ACTIONS & PROGRESS */}
             {isBulkRendering ? (
               <div style={{ background: 'rgba(0,0,0,0.4)', padding: '15px', borderRadius: '12px', border: '1px solid #ec4899', textAlign: 'center' }}>
@@ -2244,6 +2307,25 @@ ${currentAdvice}
               </div>
             )}
             <input type="file" accept="video/*" onChange={(e) => { if(e.target.files?.[0]) setActiveBroll(URL.createObjectURL(e.target.files[0])); }} style={{ color: 'white', fontSize: '11px', width: '100%', marginBottom: '15px' }} />
+
+            <div style={{ marginBottom: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>🎵 الموسيقى الخلفية:</label>
+                <span style={{ fontSize: '10px', color: '#10b981' }}>بدون حقوق ✅</span>
+              </div>
+              <select
+                value={activeAudioTrack}
+                onChange={e => setActiveAudioTrack(e.target.value)}
+                className="glass-input"
+                style={{ width: '100%', background: '#1e293b', color: 'white', fontSize: '12px', padding: '8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', outline: 'none' }}
+              >
+                {OFFICIAL_AUDIO_TRACKS.map(t => (
+                  <option key={t.id} value={t.file}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '10px 0' }} />
 
@@ -3163,6 +3245,23 @@ ${currentAdvice}
                         {brollList.map((b, bIdx) => (
                           <option key={bIdx} value={b.file}>
                             {b.name} ({b.size || ''})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Audio Track Selector */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', whiteSpace: 'nowrap' }}>🎵 الصوت:</span>
+                      <select 
+                        value={item.audioTrack || bulkAudioSetting}
+                        onChange={e => updateBulkItem(idx, 'audioTrack', e.target.value)}
+                        disabled={isBulkRendering}
+                        style={{ flex: 1, background: '#1e293b', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', padding: '4px 8px', fontSize: '11px', outline: 'none' }}
+                      >
+                        {OFFICIAL_AUDIO_TRACKS.map(t => (
+                          <option key={t.id} value={t.file}>
+                            {t.name}
                           </option>
                         ))}
                       </select>
