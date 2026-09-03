@@ -899,9 +899,21 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
         if (bulkCancelRef.current) break;
 
+        // Pre-buffer entire B-roll video into local RAM memory to completely eliminate HTTP network buffering stalls
+        let videoBlobUrl = null;
+        try {
+          const resp = await fetch(currentItem.broll);
+          if (resp.ok) {
+            const b = await resp.blob();
+            videoBlobUrl = URL.createObjectURL(b);
+          }
+        } catch (e) {
+          console.warn("Could not pre-buffer video into blob:", e);
+        }
+
         // Attach background B-roll video directly in visible viewport to prevent Chromium from throttling decoder FPS
         video = document.createElement('video');
-        video.src = currentItem.broll;
+        video.src = videoBlobUrl || currentItem.broll;
         video.crossOrigin = "anonymous";
         video.muted = true;
         video.playsInline = true;
@@ -921,15 +933,15 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         document.body.appendChild(video);
 
         await new Promise((resolve, reject) => {
-          if (video.readyState >= 3) {
+          if (video.readyState >= 4) {
             resolve();
             return;
           }
-          const onCanPlay = () => {
-            video.removeEventListener('canplay', onCanPlay);
+          const onCanPlayThrough = () => {
+            video.removeEventListener('canplaythrough', onCanPlayThrough);
             resolve();
           };
-          video.addEventListener('canplay', onCanPlay);
+          video.addEventListener('canplaythrough', onCanPlayThrough);
           video.onerror = () => reject(new Error("تعذر تحميل مقطع الفيديو الخلفي"));
           video.load();
         });
@@ -1027,25 +1039,14 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
         const renderStartTime = performance.now();
         let isRecordingActive = true;
+        let lastDrawTimestamp = performance.now();
 
-        // Continuous requestVideoFrameCallback loop: FORCES Chromium's video pipeline to decode EVERY frame at full rate!
+        // Continuous requestVideoFrameCallback loop + frame-lock watchdog
         await new Promise((resolve) => {
           let rvfcHandle = null;
           let rafHandle = null;
 
-          const renderFrame = () => {
-            if (!isRecordingActive) return;
-
-            if (bulkCancelRef.current) {
-              isRecordingActive = false;
-              if (rvfcHandle && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(rvfcHandle);
-              if (rafHandle) cancelAnimationFrame(rafHandle);
-              try { video.pause(); } catch(e) {}
-              recorder.stop();
-              resolve();
-              return;
-            }
-
+          const drawFrameAtCurrentTime = () => {
             const elapsed = performance.now() - renderStartTime;
             if (elapsed >= totalDuration) {
               isRecordingActive = false;
@@ -1073,6 +1074,23 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
             }
 
             drawSingleCanvasFrame(frames[currentStepIdx]);
+            lastDrawTimestamp = performance.now();
+          };
+
+          const renderFrame = () => {
+            if (!isRecordingActive) return;
+
+            if (bulkCancelRef.current) {
+              isRecordingActive = false;
+              if (rvfcHandle && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(rvfcHandle);
+              if (rafHandle) cancelAnimationFrame(rafHandle);
+              try { video.pause(); } catch(e) {}
+              recorder.stop();
+              resolve();
+              return;
+            }
+
+            drawFrameAtCurrentTime();
 
             // Register NEXT video frame callback to FORCE Chromium to decode EVERY frame at full FPS
             if ('requestVideoFrameCallback' in video) {
@@ -1088,16 +1106,21 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
             rafHandle = requestAnimationFrame(renderFrame);
           }
 
-          // Safety heartbeat watchdog ensures timeline and video loops continue without stalling
+          // Safety frame-lock watchdog: guarantees canvas paints at 30 FPS even if decoder hesitates
           const watchdog = () => {
             if (!isRecordingActive) return;
-            const elapsed = performance.now() - renderStartTime;
+            const now = performance.now();
+            const elapsed = now - renderStartTime;
             if (elapsed >= totalDuration) {
-              renderFrame();
+              drawFrameAtCurrentTime();
               return;
             }
             if (video.paused && !bulkCancelRef.current) {
               try { video.play(); } catch(e) {}
+            }
+            // If more than 30ms passed since last frame paint, force a canvas draw immediately!
+            if (now - lastDrawTimestamp >= 30) {
+              drawFrameAtCurrentTime();
             }
             requestAnimationFrame(watchdog);
           };
@@ -1106,6 +1129,9 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
         try { video.pause(); } catch(e) {}
         recorder.stop();
+        if (videoBlobUrl) {
+          try { URL.revokeObjectURL(videoBlobUrl); } catch(e) {}
+        }
 
         const videoBlob = await recordingDone;
         const blobUrl = URL.createObjectURL(videoBlob);
@@ -1517,14 +1543,13 @@ ${currentAdvice}
       setLoadingMsg("جاري تصدير الفيديو النهائي بسلاسة تامة... ⏳");
       const recStartTime = performance.now();
       let isSingleRecordingActive = true;
+      let lastDrawTimestamp = performance.now();
 
       await new Promise((resolve) => {
         let rvfcHandle = null;
         let rafHandle = null;
 
-        const animFrame = () => {
-          if (!isSingleRecordingActive) return;
-
+        const drawFrameAtCurrentTime = () => {
           const elapsed = performance.now() - recStartTime;
           if (elapsed >= totalDuration) {
             isSingleRecordingActive = false;
@@ -1549,6 +1574,12 @@ ${currentAdvice}
           }
 
           drawFrame(currentStep);
+          lastDrawTimestamp = performance.now();
+        };
+
+        const animFrame = () => {
+          if (!isSingleRecordingActive) return;
+          drawFrameAtCurrentTime();
 
           if ('requestVideoFrameCallback' in videoEl) {
             rvfcHandle = videoEl.requestVideoFrameCallback(animFrame);
@@ -1565,13 +1596,17 @@ ${currentAdvice}
 
         const watchdog = () => {
           if (!isSingleRecordingActive) return;
-          const elapsed = performance.now() - recStartTime;
+          const now = performance.now();
+          const elapsed = now - recStartTime;
           if (elapsed >= totalDuration) {
-            animFrame();
+            drawFrameAtCurrentTime();
             return;
           }
           if (videoEl.paused) {
             try { videoEl.play(); } catch(e) {}
+          }
+          if (now - lastDrawTimestamp >= 30) {
+            drawFrameAtCurrentTime();
           }
           requestAnimationFrame(watchdog);
         };
