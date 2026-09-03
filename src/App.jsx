@@ -996,13 +996,11 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         // Draw initial frame immediately BEFORE starting recorder so video stream NEVER starts black
         drawSingleCanvasFrame(frames[0]);
 
-        const recorderOptions = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
-          ? { mimeType: 'video/mp4;codecs=avc1', videoBitsPerSecond: 6000000 }
-          : (MediaRecorder.isTypeSupported('video/mp4')
-              ? { mimeType: 'video/mp4', videoBitsPerSecond: 6000000 }
-              : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-                  ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 6000000 }
-                  : { mimeType: 'video/webm', videoBitsPerSecond: 6000000 }));
+        const recorderOptions = MediaRecorder.isTypeSupported('video/mp4')
+          ? { mimeType: 'video/mp4', videoBitsPerSecond: 4000000 }
+          : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+              ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 4000000 }
+              : { mimeType: 'video/webm' });
 
         const stream = canvas.captureStream(30);
         const recorder = new MediaRecorder(stream, recorderOptions);
@@ -1028,11 +1026,20 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         }
 
         const renderStartTime = performance.now();
+        let isRecordingActive = true;
 
-        // Smooth continuous 60fps/30fps animation loop with zero promise overhead
+        // Continuous requestVideoFrameCallback loop: FORCES Chromium's video pipeline to decode EVERY frame at full rate!
         await new Promise((resolve) => {
-          const renderLoop = () => {
+          let rvfcHandle = null;
+          let rafHandle = null;
+
+          const renderFrame = () => {
+            if (!isRecordingActive) return;
+
             if (bulkCancelRef.current) {
+              isRecordingActive = false;
+              if (rvfcHandle && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(rvfcHandle);
+              if (rafHandle) cancelAnimationFrame(rafHandle);
               try { video.pause(); } catch(e) {}
               recorder.stop();
               resolve();
@@ -1041,6 +1048,9 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
             const elapsed = performance.now() - renderStartTime;
             if (elapsed >= totalDuration) {
+              isRecordingActive = false;
+              if (rvfcHandle && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(rvfcHandle);
+              if (rafHandle) cancelAnimationFrame(rafHandle);
               try { video.pause(); } catch(e) {}
               recorder.stop();
               resolve();
@@ -1063,10 +1073,35 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
             }
 
             drawSingleCanvasFrame(frames[currentStepIdx]);
-            requestAnimationFrame(renderLoop);
+
+            // Register NEXT video frame callback to FORCE Chromium to decode EVERY frame at full FPS
+            if ('requestVideoFrameCallback' in video) {
+              rvfcHandle = video.requestVideoFrameCallback(renderFrame);
+            } else {
+              rafHandle = requestAnimationFrame(renderFrame);
+            }
           };
 
-          requestAnimationFrame(renderLoop);
+          if ('requestVideoFrameCallback' in video) {
+            rvfcHandle = video.requestVideoFrameCallback(renderFrame);
+          } else {
+            rafHandle = requestAnimationFrame(renderFrame);
+          }
+
+          // Safety heartbeat watchdog ensures timeline and video loops continue without stalling
+          const watchdog = () => {
+            if (!isRecordingActive) return;
+            const elapsed = performance.now() - renderStartTime;
+            if (elapsed >= totalDuration) {
+              renderFrame();
+              return;
+            }
+            if (video.paused && !bulkCancelRef.current) {
+              try { video.play(); } catch(e) {}
+            }
+            requestAnimationFrame(watchdog);
+          };
+          requestAnimationFrame(watchdog);
         });
 
         try { video.pause(); } catch(e) {}
@@ -1453,13 +1488,11 @@ ${currentAdvice}
 
       // Record
       const stream = vc.captureStream(30);
-      const mimeOpts = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') 
-        ? { mimeType: 'video/mp4;codecs=avc1', videoBitsPerSecond: 6000000 } 
-        : (MediaRecorder.isTypeSupported('video/mp4') 
-            ? { mimeType: 'video/mp4', videoBitsPerSecond: 6000000 } 
-            : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
-                ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 6000000 } 
-                : { mimeType: 'video/webm', videoBitsPerSecond: 6000000 }));
+      const mimeOpts = MediaRecorder.isTypeSupported('video/mp4') 
+        ? { mimeType: 'video/mp4', videoBitsPerSecond: 4000000 } 
+        : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
+            ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 4000000 } 
+            : { mimeType: 'video/webm' });
 
       const rec = new MediaRecorder(stream, mimeOpts);
       const chunks = [];
@@ -1483,11 +1516,20 @@ ${currentAdvice}
 
       setLoadingMsg("جاري تصدير الفيديو النهائي بسلاسة تامة... ⏳");
       const recStartTime = performance.now();
+      let isSingleRecordingActive = true;
 
       await new Promise((resolve) => {
-        const animLoop = () => {
+        let rvfcHandle = null;
+        let rafHandle = null;
+
+        const animFrame = () => {
+          if (!isSingleRecordingActive) return;
+
           const elapsed = performance.now() - recStartTime;
           if (elapsed >= totalDuration) {
+            isSingleRecordingActive = false;
+            if (rvfcHandle && 'cancelVideoFrameCallback' in videoEl) videoEl.cancelVideoFrameCallback(rvfcHandle);
+            if (rafHandle) cancelAnimationFrame(rafHandle);
             rec.stop();
             resolve();
             return;
@@ -1507,10 +1549,33 @@ ${currentAdvice}
           }
 
           drawFrame(currentStep);
-          requestAnimationFrame(animLoop);
+
+          if ('requestVideoFrameCallback' in videoEl) {
+            rvfcHandle = videoEl.requestVideoFrameCallback(animFrame);
+          } else {
+            rafHandle = requestAnimationFrame(animFrame);
+          }
         };
 
-        requestAnimationFrame(animLoop);
+        if ('requestVideoFrameCallback' in videoEl) {
+          rvfcHandle = videoEl.requestVideoFrameCallback(animFrame);
+        } else {
+          rafHandle = requestAnimationFrame(animFrame);
+        }
+
+        const watchdog = () => {
+          if (!isSingleRecordingActive) return;
+          const elapsed = performance.now() - recStartTime;
+          if (elapsed >= totalDuration) {
+            animFrame();
+            return;
+          }
+          if (videoEl.paused) {
+            try { videoEl.play(); } catch(e) {}
+          }
+          requestAnimationFrame(watchdog);
+        };
+        requestAnimationFrame(watchdog);
       });
     } catch(e) {
       console.error(e); alert('فشل التصدير: ' + (e?.message || '')); setLoading(false);
@@ -2822,8 +2887,8 @@ ${currentAdvice}
             {/* LIVE RENDERING MONITOR FOR STACKING REELS */}
             {isBulkRendering && bulkActiveItem && (
               <div style={{ background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1))', border: '2px solid #ec4899', borderRadius: '18px', padding: '20px', marginBottom: '25px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', boxShadow: '0 10px 30px rgba(236, 72, 153, 0.2)' }}>
-                <div style={{ width: '180px', height: '320px', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative', flexShrink: 0, boxShadow: '0 8px 25px rgba(0,0,0,0.5)' }}>
-                  <video src={bulkActiveItem.broll} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+                <div style={{ width: '180px', height: '320px', background: 'linear-gradient(135deg, #18181b, #27272a)', borderRadius: '12px', overflow: 'hidden', position: 'relative', flexShrink: 0, boxShadow: '0 8px 25px rgba(0,0,0,0.5)' }}>
+                  <div style={{ width: '100%', height: '100%', background: 'radial-gradient(circle at 50% 30%, rgba(236,72,153,0.25), transparent 70%)' }} />
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '15px', gap: '6px', direction: 'rtl' }}>
                     {bulkActiveStackStep === -1 ? (
                       <div style={{ background: 'rgba(0,0,0,0.8)', padding: '6px 8px', borderRadius: '6px', fontSize: '9px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
