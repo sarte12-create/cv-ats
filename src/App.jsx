@@ -899,7 +899,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
         if (bulkCancelRef.current) break;
 
-        // Create and attach background B-roll video to DOM to force browser hardware decoding
+        // Attach background B-roll video directly in visible viewport to prevent Chromium from throttling decoder FPS
         video = document.createElement('video');
         video.src = currentItem.broll;
         video.crossOrigin = "anonymous";
@@ -908,12 +908,16 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         video.loop = true;
         video.preload = "auto";
         video.style.position = 'fixed';
-        video.style.top = '-9999px';
-        video.style.left = '-9999px';
-        video.style.width = '200px';
-        video.style.height = '200px';
-        video.style.opacity = '0.01';
+        video.style.bottom = '15px';
+        video.style.left = '15px';
+        video.style.width = '120px';
+        video.style.height = '213px';
+        video.style.zIndex = '99999';
+        video.style.borderRadius = '12px';
+        video.style.border = '2px solid #ec4899';
+        video.style.boxShadow = '0 8px 30px rgba(0,0,0,0.8)';
         video.style.pointerEvents = 'none';
+        video.style.objectFit = 'cover';
         document.body.appendChild(video);
 
         await new Promise((resolve, reject) => {
@@ -930,7 +934,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
           video.load();
         });
 
-        // Start playback and wait until the browser has actually decoded and rendered the first frame
+        // Start playback and ensure video decoder is running at full rate
         try {
           video.currentTime = 0;
           await video.play();
@@ -956,24 +960,25 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
         const baseScale = W / 400; // 1080 / 400 = 2.7
 
-        const drawSingleCanvasFrame = (snapshot) => {
-          const vw = video.videoWidth || 1080;
-          const vh = video.videoHeight || 1920;
-          const vRatio = vw / vh;
-          const cRatio = canvas.width / canvas.height;
-          let dW = canvas.width;
-          let dH = canvas.height;
-          let offX = 0;
-          let offY = 0;
-          if (vRatio > cRatio) {
-            dW = canvas.height * vRatio;
-            offX = (canvas.width - dW) / 2;
-          } else {
-            dH = canvas.width / vRatio;
-            offY = (canvas.height - dH) / 2;
-          }
+        // Pre-calculate aspect ratio dimensions once for optimal CPU/GPU performance
+        const vw = video.videoWidth || 1080;
+        const vh = video.videoHeight || 1920;
+        const vRatio = vw / vh;
+        const cRatio = canvas.width / canvas.height;
+        let dW = canvas.width;
+        let dH = canvas.height;
+        let offX = 0;
+        let offY = 0;
+        if (vRatio > cRatio) {
+          dW = canvas.height * vRatio;
+          offX = (canvas.width - dW) / 2;
+        } else {
+          dH = canvas.width / vRatio;
+          offY = (canvas.height - dH) / 2;
+        }
 
-          // Clear previous frame to avoid alpha stacking
+        const drawSingleCanvasFrame = (snapshot) => {
+          // Clear previous frame
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
           // Draw B-Roll Background
@@ -996,29 +1001,49 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         // Draw initial frame immediately BEFORE starting recorder so video stream NEVER starts black
         drawSingleCanvasFrame(frames[0]);
 
+        const recorderOptions = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
+          ? { mimeType: 'video/mp4;codecs=avc1', videoBitsPerSecond: 6000000 }
+          : (MediaRecorder.isTypeSupported('video/mp4')
+              ? { mimeType: 'video/mp4', videoBitsPerSecond: 6000000 }
+              : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                  ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 6000000 }
+                  : { mimeType: 'video/webm', videoBitsPerSecond: 6000000 }));
+
         const stream = canvas.captureStream(30);
-        const recorder = new MediaRecorder(stream, { mimeType });
+        const recorder = new MediaRecorder(stream, recorderOptions);
         const chunks = [];
         recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
 
         const recordingDone = new Promise((resolve) => {
           recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: mimeType });
+            const blob = new Blob(chunks, { type: recorderOptions.mimeType });
             resolve(blob);
           };
         });
 
         recorder.start();
 
-        // Render each step according to its duration
+        const TARGET_FPS = 30;
+        const FRAME_INTERVAL = 1000 / TARGET_FPS; // 33.33ms per frame
+
+        // Render each step according to its duration with steady 30 FPS pacing to prevent any stutter/lag
         for (let s = 0; s < steps.length; s++) {
           if (bulkCancelRef.current) break;
           const stepEndTime = Date.now() + durations[s];
           const snapshot = frames[s];
+          let lastFrameTime = performance.now();
 
           while (Date.now() < stepEndTime) {
             if (bulkCancelRef.current) break;
-            drawSingleCanvasFrame(snapshot);
+
+            const now = performance.now();
+            const elapsed = now - lastFrameTime;
+
+            if (elapsed >= FRAME_INTERVAL) {
+              lastFrameTime = now - (elapsed % FRAME_INTERVAL);
+              drawSingleCanvasFrame(snapshot);
+            }
+
             await new Promise(r => requestAnimationFrame(r));
           }
         }
@@ -1408,7 +1433,14 @@ ${currentAdvice}
 
       // Record
       const stream = vc.captureStream(30);
-      const mimeOpts = MediaRecorder.isTypeSupported('video/mp4') ? {mimeType:'video/mp4'} : MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? {mimeType:'video/webm;codecs=vp9'} : {mimeType:'video/webm'};
+      const mimeOpts = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') 
+        ? { mimeType: 'video/mp4;codecs=avc1', videoBitsPerSecond: 6000000 } 
+        : (MediaRecorder.isTypeSupported('video/mp4') 
+            ? { mimeType: 'video/mp4', videoBitsPerSecond: 6000000 } 
+            : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
+                ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 6000000 } 
+                : { mimeType: 'video/webm', videoBitsPerSecond: 6000000 }));
+
       const rec = new MediaRecorder(stream, mimeOpts);
       const chunks = [];
       rec.ondataavailable = e => chunks.push(e.data);
@@ -1420,11 +1452,23 @@ ${currentAdvice}
       };
       rec.start();
 
+      const TARGET_FPS = 30;
+      const FRAME_INTERVAL = 1000 / TARGET_FPS;
+
       setLoadingMsg("جاري تصدير الفيديو النهائي... ⏳");
       for (let s = 0; s < steps.length; s++) {
         const endTime = Date.now() + durations[s];
+        let lastFrameTime = performance.now();
+
         while (Date.now() < endTime) {
-          drawFrame(s);
+          const now = performance.now();
+          const elapsed = now - lastFrameTime;
+
+          if (elapsed >= FRAME_INTERVAL) {
+            lastFrameTime = now - (elapsed % FRAME_INTERVAL);
+            drawFrame(s);
+          }
+
           await new Promise(r => requestAnimationFrame(r));
         }
       }
