@@ -899,246 +899,253 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
         if (bulkCancelRef.current) break;
 
-        // Pre-buffer entire B-roll video into local RAM memory to completely eliminate HTTP network buffering stalls
-        let videoBlobUrl = null;
+        const cleanTitle = (currentItem.title || `Stacking_Reel_${i+1}`).replace(/[\/\\:*?"<>|]/g, '_');
+        const filename = `Stacking_Reel_${i + 1}_${cleanTitle}.mp4`;
+        let videoBlob = null;
+
+        // Tier 1: Hardware-accelerated local server engine (Broadcast 60 FPS, 0% CPU stutter, 100% smooth)
         try {
-          const resp = await fetch(currentItem.broll);
+          const base64Frames = frames.map(f => f.toDataURL('image/png'));
+          const resp = await fetch('/api/render-reel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              broll: currentItem.broll,
+              durations: durations,
+              frames: base64Frames,
+              title: filename
+            })
+          });
+
           if (resp.ok) {
-            const b = await resp.blob();
-            videoBlobUrl = URL.createObjectURL(b);
+            videoBlob = await resp.blob();
           }
-        } catch (e) {
-          console.warn("Could not pre-buffer video into blob:", e);
+        } catch (serverErr) {
+          console.warn("Local server render unavailable, using browser canvas recorder:", serverErr);
         }
 
-        // Attach background B-roll video directly in visible viewport to prevent Chromium from throttling decoder FPS
-        video = document.createElement('video');
-        video.src = videoBlobUrl || currentItem.broll;
-        video.crossOrigin = "anonymous";
-        video.muted = true;
-        video.playsInline = true;
-        video.loop = true;
-        video.preload = "auto";
-        video.style.position = 'fixed';
-        video.style.bottom = '15px';
-        video.style.left = '15px';
-        video.style.width = '320px';
-        video.style.height = '568px';
-        video.style.zIndex = '99999';
-        video.style.borderRadius = '12px';
-        video.style.border = '2px solid #ec4899';
-        video.style.boxShadow = '0 8px 30px rgba(0,0,0,0.8)';
-        video.style.pointerEvents = 'none';
-        video.style.objectFit = 'cover';
-        document.body.appendChild(video);
-
-        await new Promise((resolve, reject) => {
-          if (video.readyState >= 4) {
-            resolve();
-            return;
+        // Tier 2: In-browser canvas recorder (Fallback for static clouds like Vercel)
+        if (!videoBlob) {
+          // Pre-buffer entire B-roll video into local RAM memory to completely eliminate HTTP network buffering stalls
+          let videoBlobUrl = null;
+          try {
+            const resp = await fetch(currentItem.broll);
+            if (resp.ok) {
+              const b = await resp.blob();
+              videoBlobUrl = URL.createObjectURL(b);
+            }
+          } catch (e) {
+            console.warn("Could not pre-buffer video into blob:", e);
           }
-          const onCanPlayThrough = () => {
-            video.removeEventListener('canplaythrough', onCanPlayThrough);
-            resolve();
-          };
-          video.addEventListener('canplaythrough', onCanPlayThrough);
-          video.onerror = () => reject(new Error("تعذر تحميل مقطع الفيديو الخلفي"));
-          video.load();
-        });
 
-        // Start playback and ensure video decoder is running at full rate
-        try {
-          video.currentTime = 0;
-          await video.play();
-        } catch (e) {
-          console.warn("Video play error:", e);
-        }
+          // Attach background B-roll video directly in visible viewport to prevent Chromium from throttling decoder FPS
+          video = document.createElement('video');
+          video.src = videoBlobUrl || currentItem.broll;
+          video.crossOrigin = "anonymous";
+          video.muted = true;
+          video.playsInline = true;
+          video.loop = true;
+          video.preload = "auto";
+          video.style.position = 'fixed';
+          video.style.bottom = '15px';
+          video.style.left = '15px';
+          video.style.width = '320px';
+          video.style.height = '568px';
+          video.style.zIndex = '99999';
+          video.style.borderRadius = '12px';
+          video.style.border = '2px solid #ec4899';
+          video.style.boxShadow = '0 8px 30px rgba(0,0,0,0.8)';
+          video.style.pointerEvents = 'none';
+          video.style.objectFit = 'cover';
+          document.body.appendChild(video);
 
-        // Wait until first frame is presented by hardware decoder
-        await new Promise((resolve) => {
-          if ('requestVideoFrameCallback' in video) {
-            video.requestVideoFrameCallback(() => resolve());
+          await new Promise((resolve, reject) => {
+            if (video.readyState >= 4) {
+              resolve();
+              return;
+            }
+            const onCanPlayThrough = () => {
+              video.removeEventListener('canplaythrough', onCanPlayThrough);
+              resolve();
+            };
+            video.addEventListener('canplaythrough', onCanPlayThrough);
+            video.onerror = () => reject(new Error("تعذر تحميل مقطع الفيديو الخلفي"));
+            video.load();
+          });
+
+          try {
+            video.currentTime = 0;
+            await video.play();
+          } catch (e) {
+            console.warn("Video play error:", e);
+          }
+
+          await new Promise((resolve) => {
+            if ('requestVideoFrameCallback' in video) {
+              video.requestVideoFrameCallback(() => resolve());
+            } else {
+              const checkTime = () => {
+                if (video.currentTime > 0.05 && (video.videoWidth > 0 || video.readyState >= 2)) {
+                  resolve();
+                } else {
+                  requestAnimationFrame(checkTime);
+                }
+              };
+              checkTime();
+            }
+          });
+
+          const baseScale = W / 400; // 1080 / 400 = 2.7
+          const vw = video.videoWidth || 1080;
+          const vh = video.videoHeight || 1920;
+          const vRatio = vw / vh;
+          const cRatio = canvas.width / canvas.height;
+          let dW = canvas.width;
+          let dH = canvas.height;
+          let offX = 0;
+          let offY = 0;
+          if (vRatio > cRatio) {
+            dW = canvas.height * vRatio;
+            offX = (canvas.width - dW) / 2;
           } else {
-            const checkTime = () => {
-              if (video.currentTime > 0.05 && (video.videoWidth > 0 || video.readyState >= 2)) {
+            dH = canvas.width / vRatio;
+            offY = (canvas.height - dH) / 2;
+          }
+
+          const drawSingleCanvasFrame = (snapshot) => {
+            ctx.drawImage(video, offX, offY, dW, dH);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (snapshot) {
+              const sW = (snapshot.width / 2) * baseScale;
+              const sH = (snapshot.height / 2) * baseScale;
+              ctx.drawImage(snapshot, 0, 0, sW, sH);
+            }
+          };
+
+          drawSingleCanvasFrame(frames[0]);
+
+          const recorderOptions = MediaRecorder.isTypeSupported('video/mp4')
+            ? { mimeType: 'video/mp4', videoBitsPerSecond: 4000000 }
+            : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 4000000 }
+                : { mimeType: 'video/webm' });
+
+          const stream = canvas.captureStream(30);
+          const recorder = new MediaRecorder(stream, recorderOptions);
+          const chunks = [];
+          recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+
+          const recordingDone = new Promise((resolve) => {
+            recorder.onstop = () => {
+              const blob = new Blob(chunks, { type: recorderOptions.mimeType });
+              resolve(blob);
+            };
+          });
+
+          recorder.start();
+
+          const totalDuration = durations.reduce((a, b) => a + b, 0);
+          const stepThresholds = [];
+          let accum = 0;
+          for (let d of durations) {
+            accum += d;
+            stepThresholds.push(accum);
+          }
+
+          const renderStartTime = performance.now();
+          let isRecordingActive = true;
+          let lastDrawTimestamp = performance.now();
+
+          await new Promise((resolve) => {
+            let rvfcHandle = null;
+            let rafHandle = null;
+
+            const drawFrameAtCurrentTime = () => {
+              const elapsed = performance.now() - renderStartTime;
+              if (elapsed >= totalDuration) {
+                isRecordingActive = false;
+                if (rvfcHandle && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(rvfcHandle);
+                if (rafHandle) cancelAnimationFrame(rafHandle);
+                try { video.pause(); } catch(e) {}
+                recorder.stop();
                 resolve();
+                return;
+              }
+
+              if (video.ended || (video.duration > 0 && video.currentTime >= video.duration - 0.08)) {
+                video.currentTime = 0;
+                try { video.play(); } catch(e) {}
+              }
+
+              let currentStepIdx = 0;
+              for (let s = 0; s < stepThresholds.length; s++) {
+                if (elapsed < stepThresholds[s]) {
+                  currentStepIdx = s;
+                  break;
+                }
+              }
+
+              drawSingleCanvasFrame(frames[currentStepIdx]);
+              lastDrawTimestamp = performance.now();
+            };
+
+            const renderFrame = () => {
+              if (!isRecordingActive) return;
+
+              if (bulkCancelRef.current) {
+                isRecordingActive = false;
+                if (rvfcHandle && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(rvfcHandle);
+                if (rafHandle) cancelAnimationFrame(rafHandle);
+                try { video.pause(); } catch(e) {}
+                recorder.stop();
+                resolve();
+                return;
+              }
+
+              drawFrameAtCurrentTime();
+
+              if ('requestVideoFrameCallback' in video) {
+                rvfcHandle = video.requestVideoFrameCallback(renderFrame);
               } else {
-                requestAnimationFrame(checkTime);
+                rafHandle = requestAnimationFrame(renderFrame);
               }
             };
-            checkTime();
-          }
-        });
 
-        const baseScale = W / 400; // 1080 / 400 = 2.7
-
-        // Pre-calculate aspect ratio dimensions once for optimal CPU/GPU performance
-        const vw = video.videoWidth || 1080;
-        const vh = video.videoHeight || 1920;
-        const vRatio = vw / vh;
-        const cRatio = canvas.width / canvas.height;
-        let dW = canvas.width;
-        let dH = canvas.height;
-        let offX = 0;
-        let offY = 0;
-        if (vRatio > cRatio) {
-          dW = canvas.height * vRatio;
-          offX = (canvas.width - dW) / 2;
-        } else {
-          dH = canvas.width / vRatio;
-          offY = (canvas.height - dH) / 2;
-        }
-
-        const drawSingleCanvasFrame = (snapshot) => {
-          // 1. Draw B-Roll Background (100% opaque, ultra fast direct GPU blit - NO clearRect, NO globalAlpha=0.7)
-          ctx.drawImage(video, offX, offY, dW, dH);
-
-          // 2. Draw Dark Overlay for contrast
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          // 3. Draw Stacking Frame Snapshot
-          if (snapshot) {
-            const sW = (snapshot.width / 2) * baseScale;
-            const sH = (snapshot.height / 2) * baseScale;
-            ctx.drawImage(snapshot, 0, 0, sW, sH);
-          }
-        };
-
-        // Draw initial frame immediately BEFORE starting recorder so video stream NEVER starts black
-        drawSingleCanvasFrame(frames[0]);
-
-        const recorderOptions = MediaRecorder.isTypeSupported('video/mp4')
-          ? { mimeType: 'video/mp4', videoBitsPerSecond: 4000000 }
-          : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-              ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 4000000 }
-              : { mimeType: 'video/webm' });
-
-        const stream = canvas.captureStream(30);
-        const recorder = new MediaRecorder(stream, recorderOptions);
-        const chunks = [];
-        recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
-
-        const recordingDone = new Promise((resolve) => {
-          recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: recorderOptions.mimeType });
-            resolve(blob);
-          };
-        });
-
-        recorder.start();
-
-        // Cumulative step transition thresholds
-        const totalDuration = durations.reduce((a, b) => a + b, 0);
-        const stepThresholds = [];
-        let accum = 0;
-        for (let d of durations) {
-          accum += d;
-          stepThresholds.push(accum);
-        }
-
-        const renderStartTime = performance.now();
-        let isRecordingActive = true;
-        let lastDrawTimestamp = performance.now();
-
-        // Continuous requestVideoFrameCallback loop + frame-lock watchdog
-        await new Promise((resolve) => {
-          let rvfcHandle = null;
-          let rafHandle = null;
-
-          const drawFrameAtCurrentTime = () => {
-            const elapsed = performance.now() - renderStartTime;
-            if (elapsed >= totalDuration) {
-              isRecordingActive = false;
-              if (rvfcHandle && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(rvfcHandle);
-              if (rafHandle) cancelAnimationFrame(rafHandle);
-              try { video.pause(); } catch(e) {}
-              recorder.stop();
-              resolve();
-              return;
-            }
-
-            // Keep video looping smoothly without freeze if shorter than totalDuration
-            if (video.ended || (video.duration > 0 && video.currentTime >= video.duration - 0.08)) {
-              video.currentTime = 0;
-              try { video.play(); } catch(e) {}
-            }
-
-            // Determine which step snapshot to draw based on elapsed time
-            let currentStepIdx = 0;
-            for (let s = 0; s < stepThresholds.length; s++) {
-              if (elapsed < stepThresholds[s]) {
-                currentStepIdx = s;
-                break;
-              }
-            }
-
-            drawSingleCanvasFrame(frames[currentStepIdx]);
-            lastDrawTimestamp = performance.now();
-          };
-
-          const renderFrame = () => {
-            if (!isRecordingActive) return;
-
-            if (bulkCancelRef.current) {
-              isRecordingActive = false;
-              if (rvfcHandle && 'cancelVideoFrameCallback' in video) video.cancelVideoFrameCallback(rvfcHandle);
-              if (rafHandle) cancelAnimationFrame(rafHandle);
-              try { video.pause(); } catch(e) {}
-              recorder.stop();
-              resolve();
-              return;
-            }
-
-            drawFrameAtCurrentTime();
-
-            // Register NEXT video frame callback to FORCE Chromium to decode EVERY frame at full FPS
             if ('requestVideoFrameCallback' in video) {
               rvfcHandle = video.requestVideoFrameCallback(renderFrame);
             } else {
               rafHandle = requestAnimationFrame(renderFrame);
             }
-          };
 
-          if ('requestVideoFrameCallback' in video) {
-            rvfcHandle = video.requestVideoFrameCallback(renderFrame);
-          } else {
-            rafHandle = requestAnimationFrame(renderFrame);
+            const watchdog = () => {
+              if (!isRecordingActive) return;
+              const now = performance.now();
+              const elapsed = now - renderStartTime;
+              if (elapsed >= totalDuration) {
+                drawFrameAtCurrentTime();
+                return;
+              }
+              if (video.paused && !bulkCancelRef.current) {
+                try { video.play(); } catch(e) {}
+              }
+              if (now - lastDrawTimestamp >= 30) {
+                drawFrameAtCurrentTime();
+              }
+              requestAnimationFrame(watchdog);
+            };
+            requestAnimationFrame(watchdog);
+          });
+
+          try { video.pause(); } catch(e) {}
+          recorder.stop();
+          if (videoBlobUrl) {
+            try { URL.revokeObjectURL(videoBlobUrl); } catch(e) {}
           }
 
-          // Safety frame-lock watchdog: guarantees canvas paints at 30 FPS even if decoder hesitates
-          const watchdog = () => {
-            if (!isRecordingActive) return;
-            const now = performance.now();
-            const elapsed = now - renderStartTime;
-            if (elapsed >= totalDuration) {
-              drawFrameAtCurrentTime();
-              return;
-            }
-            if (video.paused && !bulkCancelRef.current) {
-              try { video.play(); } catch(e) {}
-            }
-            // If more than 30ms passed since last frame paint, force a canvas draw immediately!
-            if (now - lastDrawTimestamp >= 30) {
-              drawFrameAtCurrentTime();
-            }
-            requestAnimationFrame(watchdog);
-          };
-          requestAnimationFrame(watchdog);
-        });
-
-        try { video.pause(); } catch(e) {}
-        recorder.stop();
-        if (videoBlobUrl) {
-          try { URL.revokeObjectURL(videoBlobUrl); } catch(e) {}
+          videoBlob = await recordingDone;
         }
-
-        const videoBlob = await recordingDone;
         const blobUrl = URL.createObjectURL(videoBlob);
-        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-        const cleanTitle = (currentItem.title || `Stacking_Reel_${i+1}`).replace(/[\/\\:*?"<>|]/g, '_');
-        const filename = `Stacking_Reel_${i + 1}_${cleanTitle}.${ext}`;
-
         itemsCopy[i].status = 'done';
         itemsCopy[i].blobUrl = blobUrl;
         itemsCopy[i].filename = filename;
@@ -1488,6 +1495,35 @@ ${currentAdvice}
       
       document.head.removeChild(style);
       setCurrentLine(originalLine); // restore state
+
+      // 1. Hardware-accelerated local server engine (Broadcast 60 FPS, 0% CPU stutter, 100% smooth)
+      try {
+        setLoadingMsg("جاري إنتاج الفيديو فائق السلاسة (60 FPS)... 🎬");
+        const base64Frames = frames.map(f => f.toDataURL('image/png'));
+        const resp = await fetch('/api/render-reel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            broll: activeBroll || '/broll/8.mp4',
+            durations: durations,
+            frames: base64Frames,
+            title: `seartk_reel_${Date.now()}`
+          })
+        });
+
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+          a.download = `seartk_reel_${Date.now()}.mp4`;
+          a.click();
+          incrementProduction();
+          setLoading(false);
+          setLoadingMsg('');
+          return;
+        }
+      } catch (serverErr) {
+        console.warn("Local server render unavailable, using browser canvas recorder:", serverErr);
+      }
 
       const baseScale = W / 400; // 1080 / 400 = 2.7
 
