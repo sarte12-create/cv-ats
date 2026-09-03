@@ -772,6 +772,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         cta: cta,
         broll: assigned.file,
         brollName: assigned.name || `مقطع ${idx + 1}`,
+        audioTrack: bulkAudioSetting,
         status: 'pending',
         blobUrl: null,
         errorMsg: ''
@@ -945,9 +946,15 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
           if (resp.ok) {
             videoBlob = await resp.blob();
+          } else {
+            const errData = await resp.json().catch(() => ({ error: 'فشل معالجة الفيديو في السيرفر' }));
+            throw new Error(`خطأ في معالجة الفيديو (${resp.status}): ${errData.error || 'خطأ غير معروف'}`);
           }
         } catch (serverErr) {
-          console.warn("Local server render unavailable, using browser canvas recorder:", serverErr);
+          console.error("Local server render failed:", serverErr);
+          if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
+            throw serverErr;
+          }
         }
 
         // Tier 2: In-browser canvas recorder (Fallback for static clouds like Vercel)
@@ -1043,9 +1050,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             if (snapshot) {
-              const sW = (snapshot.width / 2) * baseScale;
-              const sH = (snapshot.height / 2) * baseScale;
-              ctx.drawImage(snapshot, 0, 0, sW, sH);
+              ctx.drawImage(snapshot, 0, 0, canvas.width, canvas.height);
             }
           };
 
@@ -1553,12 +1558,18 @@ ${currentAdvice}
           setLoading(false);
           setLoadingMsg('');
           return;
+        } else {
+          const errData = await resp.json().catch(() => ({ error: 'فشل معالجة الفيديو في السيرفر' }));
+          throw new Error(`خطأ في معالجة الفيديو (${resp.status}): ${errData.error || 'خطأ غير معروف'}`);
         }
       } catch (serverErr) {
-        console.warn("Local server render unavailable, using browser canvas recorder:", serverErr);
+        console.error("Local server render failed:", serverErr);
+        if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
+          alert("تعذر إنتاج الفيديو عبر محرك السيرفر: " + serverErr.message);
+          setLoading(false);
+          return;
+        }
       }
-
-      const baseScale = W / 400; // 1080 / 400 = 2.7
 
       // Draw a single frame (100% opaque, ultra fast direct GPU blit)
       const drawFrame = (stepIdx) => {
@@ -1572,9 +1583,7 @@ ${currentAdvice}
         // 3. Draw snapshot overlay
         const snapshot = frames[stepIdx];
         if (snapshot) {
-           const sW = (snapshot.width / 2) * baseScale;
-           const sH = (snapshot.height / 2) * baseScale;
-           ctx.drawImage(snapshot, 0, 0, sW, sH);
+           ctx.drawImage(snapshot, 0, 0, W, H);
         }
       };
 
