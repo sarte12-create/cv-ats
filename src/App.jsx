@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as htmlToImage from 'html-to-image';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import JSZip from 'jszip';
 import './index.css';
 
 // Initialize Gemini with Fallback Logic
@@ -101,6 +102,22 @@ export default function App() {
   });
   const [activeCalendarDay, setActiveCalendarDay] = useState('all');
   const [syncStatus, setSyncStatus] = useState('جاري مزامنة السحابة... ☁️');
+
+  // Bulk Stacking Reels Generator States
+  const [bulkItems, setBulkItems] = useState([]);
+  const [bulkSource, setBulkSource] = useState('ai'); // 'ai' | 'calendar' | 'custom'
+  const [bulkCount, setBulkCount] = useState(10);
+  const [bulkCustomTopic, setBulkCustomTopic] = useState('');
+  const [bulkSpeed, setBulkSpeed] = useState('balanced'); // 'fast' | 'balanced' | 'relaxed'
+  const [isBulkRendering, setIsBulkRendering] = useState(false);
+  const [bulkCurrentIndex, setBulkCurrentIndex] = useState(-1);
+  const [bulkRenderProgress, setBulkRenderProgress] = useState(0);
+  const [bulkActiveItem, setBulkActiveItem] = useState(null);
+  const [bulkActiveStackStep, setBulkActiveStackStep] = useState(-1);
+  const [bulkZipReady, setBulkZipReady] = useState(null);
+  const [customBulkInput, setCustomBulkInput] = useState('');
+  const [bulkCalendarDaySelect, setBulkCalendarDaySelect] = useState('all');
+  const bulkCancelRef = useRef(false);
   
   // Fetch cloud progress on mount to sync across all user devices
   useEffect(() => {
@@ -626,6 +643,454 @@ ${categoriesList}
     }
   };
 
+  // === نظام إنتاج ريلز النصائح المتراكمة بالجملة (Bulk Stacking Reels Factory) ===
+
+  const generateBulkWithAI = async (count = bulkCount) => {
+    setLoading(true);
+    setLoadingMsg(`جاري تأليف ${count} سكربتات ريلز متراكمة (Stacking Tips) لحساب @seartk3... 🧠`);
+    try {
+      const pillars = getRandomPillars(Math.min(count, contentPillars.length));
+      const pillarsContext = pillars.map((p, i) => `${i + 1}. [${p.cat}]: ${p.angle}`).join('\n');
+      
+      const prompt = `أنت صانع محتوى ريلز وتيك توك سعودي محترف لحساب @seartk3 المتخصص في التوظيف والسير الذاتية (ATS) والمسار المهني.
+المطلوب: اكتب مصفوفة تحتوي بالضبط على (${count}) سكربتات فيديو ريلز بأسلوب "النصائح المتراكمة" (Stacking Tips).
+
+ركائز المحتوى للاستلهام:
+${pillarsContext}
+${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${bulkCustomTopic}"` : ''}
+
+قواعد السكربت المتراكم لكل فيديو:
+1. hook: سؤال أو خطاف قوي ومثير للفضول يظهر في البداية (سطر واحد فقط، 6-12 كلمة).
+2. tips: مصفوفة تحتوي على 3 إلى 4 نصائح متتالية ومركزة جداً. كل نصيحة سريعة وقوية (أقل من 8 كلمات) لتتراكم على الشاشة مع أرقام.
+3. cta: خاتمة دعوة للتفاعل أو طلب خدمة سيرة ذاتية (مثال: "اطلب سيرتك الذاتية المتوافقة مع ATS من البايو").
+4. النبرة: عربي خليجي بيضاء بشرية وعفوية، تجنب الإفراط في الفواصل والنقاط حتى لا يبدو آلياً.
+5. نوّع المواضيع: أخطاء المقابلات، حيل الـ HR، أسرار التقديم، مفاوضة الراتب، لينكد إن، أخطاء السيرة.
+
+يجب أن ترد بمصفوفة JSON فقط بالشكل التالي تماماً بدون أي شروحات إضافية:
+[
+  {
+    "title": "عنوان مختصر للفيديو",
+    "hook": "الخطاف المثير هنا؟",
+    "tips": [
+      "نصيحة سريعة 1",
+      "نصيحة سريعة 2",
+      "نصيحة سريعة 3",
+      "نصيحة سريعة 4"
+    ],
+    "cta": "الخاتمة والدعوة لطلب السيرة بالبايو"
+  }
+]`;
+
+      const result = await executeWithFallback(prompt);
+      const scripts = extractJSON(result.response.text());
+
+      if (!Array.isArray(scripts) || scripts.length === 0) {
+        throw new Error("لم يرجع الذكاء الاصطناعي بيانات صالحة");
+      }
+
+      const availableBrolls = brollList.length > 0 ? brollList : [{ file: activeBroll || '/broll/1.mp4', name: 'مقطع افتراضي' }];
+
+      const newItems = scripts.slice(0, count).map((item, idx) => {
+        const assignedBroll = availableBrolls[idx % availableBrolls.length];
+        return {
+          id: `bulk_stack_${Date.now()}_${idx}`,
+          title: item.title || `ريلز متراكم ${idx + 1}`,
+          hook: item.hook || "خطاف الفيديو المثير؟",
+          tips: Array.isArray(item.tips) && item.tips.length > 0 ? item.tips : ["نصيحة سريعة 1", "نصيحة سريعة 2", "نصيحة سريعة 3"],
+          cta: item.cta || "اطلب سيرتك الذاتية من الرابط بالبايو 💼",
+          broll: assignedBroll.file,
+          brollName: assignedBroll.name || `مقطع ${idx + 1}`,
+          status: 'pending',
+          blobUrl: null,
+          errorMsg: ''
+        };
+      });
+
+      setBulkItems(newItems);
+      setBulkZipReady(null);
+    } catch (e) {
+      console.error(e);
+      alert("حدث خطأ أثناء توليد الريلز المتراكمة: " + e.message);
+    }
+    setLoading(false);
+  };
+
+  const loadFromCalendarToBulk = (dayIndex = 'all') => {
+    let selectedVideos = [];
+    if (dayIndex === 'all') {
+      CONTENT_PLAN.forEach(dp => {
+        selectedVideos.push(...dp.videos);
+      });
+    } else {
+      selectedVideos = CONTENT_PLAN[dayIndex]?.videos || [];
+    }
+
+    const availableBrolls = brollList.length > 0 ? brollList : [{ file: activeBroll, name: 'فيديو افتراضي' }];
+    const newItems = selectedVideos.map((v, idx) => {
+      let matchedBroll = null;
+      for (const b of availableBrolls) {
+        if (b.num && v.content.includes(`مقطع-${b.num}`)) {
+          matchedBroll = b;
+          break;
+        }
+      }
+      const assigned = matchedBroll || availableBrolls[idx % availableBrolls.length];
+      
+      // Parse content into hook, tips, and cta
+      const rawLines = v.content.replace(/\[مقطع-\d+\]/g, '').split('\n').map(l => l.trim()).filter(Boolean);
+      let hook = rawLines[0] || "هل سيرتك جاهزة للمنافسة؟";
+      let cta = rawLines.length > 1 ? rawLines[rawLines.length - 1] : "اطلب سيرتك من الرابط بالبايو 💼";
+      let tips = rawLines.slice(1, -1);
+      if (tips.length === 0) {
+        tips = ["ركز على مهاراتك التقنية", "احذف المعلومات الزائدة", "نسق السيرة بنظام ATS"];
+      }
+
+      return {
+        id: v.id || `cal_${idx}`,
+        title: v.title || `فيديو ${idx + 1}`,
+        hook: hook,
+        tips: tips.slice(0, 4),
+        cta: cta,
+        broll: assigned.file,
+        brollName: assigned.name || `مقطع ${idx + 1}`,
+        status: 'pending',
+        blobUrl: null,
+        errorMsg: ''
+      };
+    });
+
+    setBulkItems(newItems);
+    setBulkZipReady(null);
+    setAppMode('bulk');
+  };
+
+  const addCustomBulkItems = () => {
+    if (!customBulkInput.trim()) return;
+    const blocks = customBulkInput.split('\n\n').map(p => p.trim()).filter(Boolean);
+    const availableBrolls = brollList.length > 0 ? brollList : [{ file: activeBroll, name: 'فيديو افتراضي' }];
+    
+    const newItems = blocks.map((block, idx) => {
+      const assignedBroll = availableBrolls[(bulkItems.length + idx) % availableBrolls.length];
+      const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+      const hook = lines[0] || "سؤال خطاف في البداية؟";
+      const cta = lines.length > 1 ? lines[lines.length - 1] : "تابعنا للمزيد من الأسرار المهنية";
+      const tips = lines.length > 2 ? lines.slice(1, -1) : ["نصيحة أولى", "نصيحة ثانية"];
+
+      return {
+        id: `custom_${Date.now()}_${idx}`,
+        title: `ريلز متراكم مخصص ${bulkItems.length + idx + 1}`,
+        hook: hook,
+        tips: tips,
+        cta: cta,
+        broll: assignedBroll.file,
+        brollName: assignedBroll.name || `مقطع ${idx + 1}`,
+        status: 'pending',
+        blobUrl: null,
+        errorMsg: ''
+      };
+    });
+
+    setBulkItems(prev => [...prev, ...newItems]);
+    setCustomBulkInput('');
+    setBulkZipReady(null);
+  };
+
+  const updateBulkItem = (index, field, val) => {
+    const updated = [...bulkItems];
+    updated[index][field] = val;
+    setBulkItems(updated);
+  };
+
+  const updateBulkItemTip = (itemIndex, tipIndex, val) => {
+    const updated = [...bulkItems];
+    const newTips = [...updated[itemIndex].tips];
+    newTips[tipIndex] = val;
+    updated[itemIndex].tips = newTips;
+    setBulkItems(updated);
+  };
+
+  const addBulkItemTip = (itemIndex) => {
+    const updated = [...bulkItems];
+    updated[itemIndex].tips = [...updated[itemIndex].tips, "نصيحة جديدة..."];
+    setBulkItems(updated);
+  };
+
+  const removeBulkItemTip = (itemIndex, tipIndex) => {
+    const updated = [...bulkItems];
+    updated[itemIndex].tips = updated[itemIndex].tips.filter((_, i) => i !== tipIndex);
+    setBulkItems(updated);
+  };
+
+  const removeBulkItem = (index) => {
+    const updated = bulkItems.filter((_, i) => i !== index);
+    setBulkItems(updated);
+  };
+
+  const cancelBulkRender = () => {
+    bulkCancelRef.current = true;
+    setIsBulkRendering(false);
+  };
+
+  const startBulkRender = async () => {
+    if (bulkItems.length === 0) {
+      alert("الدفعة فارغة! قم بتوليد أو إضافة سكربتات أولاً.");
+      return;
+    }
+
+    setIsBulkRendering(true);
+    bulkCancelRef.current = false;
+    setBulkZipReady(null);
+
+    const itemsCopy = bulkItems.map(item => ({ ...item, status: 'pending', errorMsg: '' }));
+    setBulkItems([...itemsCopy]);
+
+    const generatedFiles = [];
+    const W = 1080, H = 1920;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4')
+      ? 'video/mp4'
+      : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm');
+
+    // Step durations according to bulkSpeed
+    const getDurations = (itemTipsCount) => {
+      if (bulkSpeed === 'fast') {
+        return [2200, ...Array(itemTipsCount).fill(1500), 1600];
+      } else if (bulkSpeed === 'relaxed') {
+        return [3200, ...Array(itemTipsCount).fill(2200), 2400];
+      } else {
+        // Balanced
+        return [2600, ...Array(itemTipsCount).fill(1800), 2000];
+      }
+    };
+
+    for (let i = 0; i < itemsCopy.length; i++) {
+      if (bulkCancelRef.current) break;
+
+      setBulkCurrentIndex(i);
+      setBulkRenderProgress(Math.round((i / itemsCopy.length) * 100));
+      itemsCopy[i].status = 'rendering';
+      setBulkItems([...itemsCopy]);
+
+      const currentItem = itemsCopy[i];
+      setBulkActiveItem(currentItem);
+
+      let video = null;
+      try {
+        const stagingEl = document.getElementById('bulk-stacking-staging');
+        if (!stagingEl) throw new Error("تعذر العثور على مساحة ريندر النصائح المتراكمة");
+
+        // Steps: -1 (hook), 0..tips.length-1 (each tip), tips.length (CTA)
+        const steps = [-1, ...currentItem.tips.map((_, tIdx) => tIdx), currentItem.tips.length];
+        const durations = getDurations(currentItem.tips.length);
+
+        // Pre-render snapshots of each stacking state
+        const frames = [];
+        for (let s = 0; s < steps.length; s++) {
+          if (bulkCancelRef.current) break;
+          setBulkActiveStackStep(steps[s]);
+          await new Promise(r => setTimeout(r, 140)); // wait for DOM to update
+          const snapshotCanvas = await htmlToImage.toCanvas(stagingEl, { backgroundColor: 'transparent', pixelRatio: 2 });
+          frames.push(snapshotCanvas);
+        }
+
+        if (bulkCancelRef.current) break;
+
+        // Create and attach background B-roll video to DOM to force browser hardware decoding
+        video = document.createElement('video');
+        video.src = currentItem.broll;
+        video.crossOrigin = "anonymous";
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = true;
+        video.preload = "auto";
+        video.style.position = 'fixed';
+        video.style.top = '-9999px';
+        video.style.left = '-9999px';
+        video.style.width = '200px';
+        video.style.height = '200px';
+        video.style.opacity = '0.01';
+        video.style.pointerEvents = 'none';
+        document.body.appendChild(video);
+
+        await new Promise((resolve, reject) => {
+          if (video.readyState >= 3) {
+            resolve();
+            return;
+          }
+          const onCanPlay = () => {
+            video.removeEventListener('canplay', onCanPlay);
+            resolve();
+          };
+          video.addEventListener('canplay', onCanPlay);
+          video.onerror = () => reject(new Error("تعذر تحميل مقطع الفيديو الخلفي"));
+          video.load();
+        });
+
+        // Start playback and wait until the browser has actually decoded and rendered the first frame
+        try {
+          video.currentTime = 0;
+          await video.play();
+        } catch (e) {
+          console.warn("Video play error:", e);
+        }
+
+        // Wait until first frame is presented by hardware decoder
+        await new Promise((resolve) => {
+          if ('requestVideoFrameCallback' in video) {
+            video.requestVideoFrameCallback(() => resolve());
+          } else {
+            const checkTime = () => {
+              if (video.currentTime > 0.05 && (video.videoWidth > 0 || video.readyState >= 2)) {
+                resolve();
+              } else {
+                requestAnimationFrame(checkTime);
+              }
+            };
+            checkTime();
+          }
+        });
+
+        const baseScale = W / 400; // 1080 / 400 = 2.7
+
+        const drawSingleCanvasFrame = (snapshot) => {
+          const vw = video.videoWidth || 1080;
+          const vh = video.videoHeight || 1920;
+          const vRatio = vw / vh;
+          const cRatio = canvas.width / canvas.height;
+          let dW = canvas.width;
+          let dH = canvas.height;
+          let offX = 0;
+          let offY = 0;
+          if (vRatio > cRatio) {
+            dW = canvas.height * vRatio;
+            offX = (canvas.width - dW) / 2;
+          } else {
+            dH = canvas.width / vRatio;
+            offY = (canvas.height - dH) / 2;
+          }
+
+          // Clear previous frame to avoid alpha stacking
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Draw B-Roll Background
+          ctx.globalAlpha = 0.7;
+          ctx.drawImage(video, offX, offY, dW, dH);
+          ctx.globalAlpha = 1.0;
+
+          // Draw Dark Overlay for contrast (single layer)
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Draw Stacking Frame Snapshot
+          if (snapshot) {
+            const sW = (snapshot.width / 2) * baseScale;
+            const sH = (snapshot.height / 2) * baseScale;
+            ctx.drawImage(snapshot, 0, 0, sW, sH);
+          }
+        };
+
+        // Draw initial frame immediately BEFORE starting recorder so video stream NEVER starts black
+        drawSingleCanvasFrame(frames[0]);
+
+        const stream = canvas.captureStream(30);
+        const recorder = new MediaRecorder(stream, { mimeType });
+        const chunks = [];
+        recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+
+        const recordingDone = new Promise((resolve) => {
+          recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mimeType });
+            resolve(blob);
+          };
+        });
+
+        recorder.start();
+
+        // Render each step according to its duration
+        for (let s = 0; s < steps.length; s++) {
+          if (bulkCancelRef.current) break;
+          const stepEndTime = Date.now() + durations[s];
+          const snapshot = frames[s];
+
+          while (Date.now() < stepEndTime) {
+            if (bulkCancelRef.current) break;
+            drawSingleCanvasFrame(snapshot);
+            await new Promise(r => requestAnimationFrame(r));
+          }
+        }
+
+        try { video.pause(); } catch(e) {}
+        recorder.stop();
+
+        const videoBlob = await recordingDone;
+        const blobUrl = URL.createObjectURL(videoBlob);
+        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const cleanTitle = (currentItem.title || `Stacking_Reel_${i+1}`).replace(/[\/\\:*?"<>|]/g, '_');
+        const filename = `Stacking_Reel_${i + 1}_${cleanTitle}.${ext}`;
+
+        itemsCopy[i].status = 'done';
+        itemsCopy[i].blobUrl = blobUrl;
+        itemsCopy[i].filename = filename;
+        generatedFiles.push({ blob: videoBlob, filename });
+        setBulkItems([...itemsCopy]);
+        incrementProduction();
+
+      } catch (err) {
+        console.error(`Bulk stacking render error at ${i}:`, err);
+        itemsCopy[i].status = 'error';
+        itemsCopy[i].errorMsg = err.message || 'خطأ أثناء المعالجة';
+        setBulkItems([...itemsCopy]);
+      } finally {
+        if (video) {
+          try { video.pause(); video.remove(); } catch(e) {}
+        }
+      }
+    }
+
+    setBulkRenderProgress(100);
+    setIsBulkRendering(false);
+    setBulkCurrentIndex(-1);
+
+    if (generatedFiles.length > 0) {
+      try {
+        const zip = new JSZip();
+        generatedFiles.forEach(({ blob, filename }) => {
+          zip.file(filename, blob);
+        });
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        setBulkZipReady(zipBlob);
+      } catch (zipErr) {
+        console.error("ZIP creation failed:", zipErr);
+      }
+    }
+  };
+
+  const downloadZip = () => {
+    if (!bulkZipReady) return;
+    const url = URL.createObjectURL(bulkZipReady);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Seartk_Stacking_Reels_${Date.now()}.zip`;
+    a.click();
+  };
+
+  const downloadAllIndividually = () => {
+    bulkItems.forEach((item, idx) => {
+      if (item.blobUrl) {
+        setTimeout(() => {
+          const a = document.createElement('a');
+          a.href = item.blobUrl;
+          a.download = item.filename || `Stacking_Reel_${idx + 1}.mp4`;
+          a.click();
+        }, idx * 600);
+      }
+    });
+  };
+
   const generateVideoScript = async () => {
     if (!videoTopic) return;
     setLoading(true);
@@ -921,6 +1386,9 @@ ${currentAdvice}
 
       // Draw a single frame
       const drawFrame = (stepIdx) => {
+        // Clear canvas to prevent alpha stacking
+        ctx.clearRect(0, 0, W, H);
+
         // B-Roll background
         ctx.globalAlpha = 0.7;
         ctx.drawImage(videoEl, 0, 0, W, H);
@@ -934,6 +1402,9 @@ ${currentAdvice}
            ctx.drawImage(snapshot, 0, 0, sW, sH);
         }
       };
+
+      // Draw initial frame before starting stream recording
+      drawFrame(0);
 
       // Record
       const stream = vc.captureStream(30);
@@ -1050,16 +1521,18 @@ ${currentAdvice}
           >💼 الفيديوهات الاحترافية</button>
           <button 
             onClick={() => setAppMode('video')} 
-            style={{ flex: '1 1 30%', padding: '10px', background: appMode === 'video' ? '#e92a67' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+            style={{ flex: '1 1 30%', padding: '10px', background: (appMode === 'video' || appMode === 'bulk') ? '#e92a67' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
           >🎬 فيديو Reels</button>
           <button 
             onClick={() => setAppMode('analytics')} 
-            style={{ flex: '1 1 45%', padding: '10px', background: appMode === 'analytics' ? '#8b5cf6' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
+            style={{ flex: '1 1 30%', padding: '10px', background: appMode === 'analytics' ? '#8b5cf6' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
           >📊 تحليلات (Dashboard)</button>
           <button 
-            onClick={() => setAppMode('calendar')} 
-            style={{ flex: '1 1 45%', padding: '10px', background: appMode === 'calendar' ? '#5B8C3E' : 'transparent', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold' }}
-          >📅 خطة الـ 7 أيام</button>
+            onClick={() => setAppMode('bulk')} 
+            style={{ flex: '1 1 65%', padding: '10px', background: appMode === 'bulk' ? 'linear-gradient(135deg, #ec4899, #8b5cf6)' : 'rgba(236, 72, 153, 0.2)', border: '1px solid rgba(236, 72, 153, 0.4)', borderRadius: '8px', color: 'white', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', boxShadow: appMode === 'bulk' ? '0 4px 15px rgba(236, 72, 153, 0.4)' : 'none' }}
+          >
+            <span>⚡</span> إنتاج بالجملة (10 - 20 فيديو)
+          </button>
         </div>
 
         {appMode === 'analytics' ? (
@@ -1070,6 +1543,12 @@ ${currentAdvice}
           </div>
         ) : appMode === 'premium-reel' ? (
           <div className="glass-panel" style={{ marginBottom: '20px' }}>
+            {/* Quick Link to Bulk Mode */}
+            <div style={{ background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15))', border: '1px solid rgba(236, 72, 153, 0.35)', padding: '10px 14px', borderRadius: '10px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '12px', color: '#f472b6', fontWeight: 'bold' }}>⚡ تبي تنتج 10 أو 20 فيديو دفعة واحدة؟</span>
+              <button onClick={() => setAppMode('bulk')} style={{ background: '#ec4899', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>مصنع الجملة 🚀</button>
+            </div>
+
             <h3 style={{ marginBottom: '10px', color: '#f59e0b', display: 'flex', justifyContent: 'space-between' }}>
                 <span>💼 مصنع الريلز الاحترافي (B-Roll)</span>
             </h3>
@@ -1281,9 +1760,247 @@ ${currentAdvice}
               </>
             )}
           </>
+        ) : appMode === 'bulk' ? (
+          /* BULK REELS SIDEBAR */
+          <div className="glass-panel" style={{ marginBottom: '20px' }}>
+            {/* SUB TABS: SINGLE VS BULK */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: '10px' }}>
+              <button 
+                onClick={() => setAppMode('video')} 
+                style={{ flex: 1, padding: '8px', background: 'transparent', border: 'none', borderRadius: '7px', color: '#94a3b8', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+              >
+                🎬 ريلز فردي (نصائح)
+              </button>
+              <button 
+                onClick={() => setAppMode('bulk')} 
+                style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', border: 'none', borderRadius: '7px', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 2px 8px rgba(236,72,153,0.3)' }}
+              >
+                <span>⚡</span> إنتاج بالجملة (10-20)
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h3 style={{ color: '#ec4899', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
+                <span>⚡ مصنع الإنتاج بالجملة</span>
+              </h3>
+              <span style={{ background: 'rgba(236, 72, 153, 0.2)', color: '#f472b6', padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>
+                {bulkItems.length} فيديو بالدفعة
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '15px' }}>
+              أنتج ورندر من 5 إلى 20 فيديو ريلز دفعة واحدة مع دمج الـ B-roll وتنزيل ملف مضغوط ZIP بنقرة زر!
+            </p>
+
+            {/* SOURCE SELECTOR */}
+            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', padding: '3px', borderRadius: '10px', marginBottom: '15px', gap: '5px' }}>
+              <button 
+                onClick={() => setBulkSource('ai')}
+                style={{ flex: 1, padding: '7px', fontSize: '11px', borderRadius: '7px', border: 'none', background: bulkSource === 'ai' ? '#ec4899' : 'transparent', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                🤖 ذكاء اصطناعي
+              </button>
+              <button 
+                onClick={() => setBulkSource('calendar')}
+                style={{ flex: 1, padding: '7px', fontSize: '11px', borderRadius: '7px', border: 'none', background: bulkSource === 'calendar' ? '#5B8C3E' : 'transparent', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                📅 خطة الأسبوع
+              </button>
+              <button 
+                onClick={() => setBulkSource('custom')}
+                style={{ flex: 1, padding: '7px', fontSize: '11px', borderRadius: '7px', border: 'none', background: bulkSource === 'custom' ? '#8b5cf6' : 'transparent', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                ✍️ نصوصك
+              </button>
+            </div>
+
+            {/* SOURCE SPECIFIC CONTROLS */}
+            {bulkSource === 'ai' && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', marginBottom: '15px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <label style={{ color: 'white', fontSize: '12px', display: 'block', marginBottom: '8px' }}>عدد الفيديوهات المطلوبة:</label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  {[5, 10, 15, 20].map(cnt => (
+                    <button
+                      key={cnt}
+                      onClick={() => setBulkCount(cnt)}
+                      style={{
+                        flex: 1, padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px',
+                        background: bulkCount === cnt ? 'linear-gradient(135deg, #ec4899, #be185d)' : 'rgba(255,255,255,0.1)',
+                        color: 'white', boxShadow: bulkCount === cnt ? '0 2px 8px rgba(236, 72, 153, 0.4)' : 'none'
+                      }}
+                    >
+                      {cnt}
+                    </button>
+                  ))}
+                </div>
+
+                <label style={{ color: 'white', fontSize: '12px', display: 'block', marginBottom: '6px' }}>موضوع أو تركيز محدد (اختياري):</label>
+                <input 
+                  type="text" 
+                  value={bulkCustomTopic} 
+                  onChange={e => setBulkCustomTopic(e.target.value)}
+                  placeholder="مثال: أخطاء المقابلات أو حيل لينكد إن..."
+                  className="glass-input"
+                  style={{ marginBottom: '10px', fontSize: '12px' }}
+                />
+
+                <button 
+                  onClick={() => generateBulkWithAI(bulkCount)}
+                  disabled={loading || isBulkRendering}
+                  className="glass-button"
+                  style={{ width: '100%', background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', color: 'white', fontWeight: 'bold', padding: '10px', fontSize: '13px' }}
+                >
+                  ✨ توليد ({bulkCount}) فيديوهات الآن
+                </button>
+              </div>
+            )}
+
+            {bulkSource === 'calendar' && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', marginBottom: '15px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <label style={{ color: 'white', fontSize: '12px', display: 'block', marginBottom: '8px' }}>اختر نطاق الخطة:</label>
+                <select 
+                  value={bulkCalendarDaySelect} 
+                  onChange={e => setBulkCalendarDaySelect(e.target.value)}
+                  className="glass-input"
+                  style={{ width: '100%', marginBottom: '12px', background: '#1e293b', color: 'white' }}
+                >
+                  <option value="all">🌟 الخطة كاملة (21 فيديو - 7 أيام)</option>
+                  {CONTENT_PLAN.map((dp, i) => (
+                    <option key={i} value={i}>📅 {dp.day} (3 فيديوهات)</option>
+                  ))}
+                </select>
+                <button 
+                  onClick={() => loadFromCalendarToBulk(bulkCalendarDaySelect === 'all' ? 'all' : parseInt(bulkCalendarDaySelect))}
+                  disabled={loading || isBulkRendering}
+                  className="glass-button"
+                  style={{ width: '100%', background: 'linear-gradient(135deg, #5B8C3E, #2f541b)', color: 'white', fontWeight: 'bold', padding: '10px', fontSize: '13px' }}
+                >
+                  📥 استيراد الفيديوهات للدفعة
+                </button>
+              </div>
+            )}
+
+            {bulkSource === 'custom' && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', marginBottom: '15px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <label style={{ color: 'white', fontSize: '12px', display: 'block', marginBottom: '6px' }}>الصق نصوصك (افصل بين كل فيديو بسطرين فارغين):</label>
+                <textarea 
+                  value={customBulkInput}
+                  onChange={e => setCustomBulkInput(e.target.value)}
+                  placeholder="نص الفيديو الأول هنا...&#10;&#10;نص الفيديو الثاني هنا...&#10;&#10;نص الفيديو الثالث..."
+                  className="glass-input"
+                  style={{ height: '90px', fontSize: '12px', marginBottom: '10px' }}
+                />
+                <button 
+                  onClick={addCustomBulkItems}
+                  disabled={!customBulkInput.trim() || isBulkRendering}
+                  className="glass-button"
+                  style={{ width: '100%', background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', color: 'white', fontWeight: 'bold', padding: '9px', fontSize: '12px' }}
+                >
+                  ➕ إضافة النصوص إلى الدفعة
+                </button>
+              </div>
+            )}
+
+            {/* RENDER SETTINGS */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px', marginBottom: '15px' }}>
+              <label style={{ color: 'white', fontSize: '12px', display: 'block', marginBottom: '8px' }}>⚡ سرعة تتابع النصائح المتراكمة:</label>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                <button 
+                  onClick={() => setBulkSpeed('fast')} 
+                  style={{ flex: 1, padding: '7px 4px', background: bulkSpeed === 'fast' ? '#ec4899' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  ⚡ سريعة (10ث)
+                </button>
+                <button 
+                  onClick={() => setBulkSpeed('balanced')} 
+                  style={{ flex: 1, padding: '7px 4px', background: bulkSpeed === 'balanced' ? '#10b981' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  ⏱️ متوازنة (13ث)
+                </button>
+                <button 
+                  onClick={() => setBulkSpeed('relaxed')} 
+                  style={{ flex: 1, padding: '7px 4px', background: bulkSpeed === 'relaxed' ? '#3b82f6' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  🍃 هادئة (16ث)
+                </button>
+              </div>
+
+              <div style={{ background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', fontSize: '11px', color: '#94a3b8', lineHeight: '1.6' }}>
+                🎯 التتابع: <strong style={{ color: 'white' }}>الخطاف</strong> يظهر أولاً ← ثم تختفي ويظهر <strong style={{ color: '#10b981' }}>تراكم النصائح 1، 2، 3، 4</strong> مع أرقام ملونة ← ثم تظهر <strong style={{ color: '#3b82f6' }}>الخاتمة (CTA)</strong>.
+              </div>
+            </div>
+
+            {/* ACTIONS & PROGRESS */}
+            {isBulkRendering ? (
+              <div style={{ background: 'rgba(0,0,0,0.4)', padding: '15px', borderRadius: '12px', border: '1px solid #ec4899', textAlign: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>
+                  <span>جاري ريندر الفيديو {bulkCurrentIndex + 1} من {bulkItems.length}...</span>
+                  <span>{bulkRenderProgress}%</span>
+                </div>
+                <div style={{ width: '100%', background: 'rgba(255,255,255,0.1)', height: '10px', borderRadius: '5px', overflow: 'hidden', marginBottom: '12px' }}>
+                  <div style={{ width: `${bulkRenderProgress}%`, height: '100%', background: 'linear-gradient(90deg, #ec4899, #8b5cf6)', transition: 'width 0.3s ease' }}></div>
+                </div>
+                <button 
+                  onClick={cancelBulkRender}
+                  style={{ width: '100%', padding: '8px', background: '#dc2626', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  ⏹️ إيقاف العملية
+                </button>
+              </div>
+            ) : (
+              <div>
+                <button 
+                  onClick={startBulkRender}
+                  disabled={bulkItems.length === 0 || loading}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: bulkItems.length === 0 ? 'not-allowed' : 'pointer',
+                    background: bulkItems.length === 0 ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #ec4899, #be185d)',
+                    color: 'white', boxShadow: bulkItems.length > 0 ? '0 4px 15px rgba(236, 72, 153, 0.4)' : 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px'
+                  }}
+                >
+                  <span>🚀</span>
+                  <span>بدء إنتاج وتصدير ({bulkItems.length}) فيديو</span>
+                </button>
+
+                {bulkZipReady && (
+                  <div style={{ animation: 'fadeInUp 0.3s ease' }}>
+                    <button 
+                      onClick={downloadZip}
+                      style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}
+                    >
+                      <span>📦</span>
+                      <span>تحميل جميع الفيديوهات بملف مضغوط (ZIP)</span>
+                    </button>
+                    <button 
+                      onClick={downloadAllIndividually}
+                      style={{ width: '100%', padding: '8px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', color: '#cbd5e1', fontSize: '11px', cursor: 'pointer' }}
+                    >
+                      ⬇️ تنزيل كل فيديو منفصلاً
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         ) : (
           /* VIDEO MODE SIDEBAR - STACKING TIPS */
           <div className="glass-panel" style={{ marginBottom: '20px' }}>
+            {/* SUB TABS: SINGLE VS BULK */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: '10px' }}>
+              <button 
+                onClick={() => setAppMode('video')} 
+                style={{ flex: 1, padding: '8px', background: '#e92a67', border: 'none', borderRadius: '7px', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+              >
+                🎬 ريلز فردي (نصائح)
+              </button>
+              <button 
+                onClick={() => setAppMode('bulk')} 
+                style={{ flex: 1, padding: '8px', background: 'transparent', border: 'none', borderRadius: '7px', color: '#cbd5e1', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
+              >
+                <span>⚡</span> إنتاج بالجملة (10-20)
+              </button>
+            </div>
+
             <h3 style={{ marginBottom: '10px', color: '#e92a67', display: 'flex', justifyContent: 'space-between' }}>
                 <span>🎬 ريلز النصائح المتراكمة</span>
                 <button onClick={fetchVideoIdeas} disabled={loading} style={{ width: 'auto', padding: '5px 15px', fontSize: '12px' }}>🔄 تجديد</button>
@@ -1741,6 +2458,9 @@ ${currentAdvice}
                     <span style={{ fontSize: '12px', background: 'rgba(91,140,62,0.15)', color: '#5B8C3E', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold' }}>{syncStatus}</span>
                     <button onClick={exportSyncCode} style={{ background: 'none', border: '1px solid rgba(45,42,38,0.2)', padding: '3px 8px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', fontWeight: '600', color: '#2D2A26' }}>📋 نسخ رمز التزامن</button>
                     <button onClick={importSyncCode} style={{ background: 'none', border: '1px solid rgba(45,42,38,0.2)', padding: '3px 8px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', fontWeight: '600', color: '#2D2A26' }}>📥 استيراد رمز</button>
+                    <button onClick={() => loadFromCalendarToBulk('all')} style={{ background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', border: 'none', color: 'white', padding: '4px 12px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 2px 8px rgba(236,72,153,0.3)' }}>
+                      <span>⚡</span> إنتاج الخطة بالجملة (21 فيديو)
+                    </button>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -1825,6 +2545,9 @@ ${currentAdvice}
                         <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>{dayPlan.day}</h3>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button onClick={() => loadFromCalendarToBulk(actualDayIdx)} style={{ background: 'rgba(236, 72, 153, 0.15)', border: '1px solid rgba(236, 72, 153, 0.4)', color: '#ec4899', padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>⚡</span> إنتاج فيديوهات اليوم بالجملة (3)
+                        </button>
                         <span style={{
                           fontSize: '12px', fontWeight: 'bold', padding: '5px 12px', borderRadius: '20px',
                           background: isDayComplete ? '#5B8C3E' : 'rgba(217, 119, 6, 0.25)',
@@ -1891,6 +2614,364 @@ ${currentAdvice}
             <div style={{ textAlign: 'center', padding: '24px', color: 'rgba(45,42,38,0.5)', fontSize: '13px', fontWeight: '600' }}>
               تم برمجة هذه الشاشة لـ <span style={{ color: '#5B8C3E' }}>سيرتك علينا</span> 🚀<br/>
               (تقدمك محفوظ تلقائياً حتى لو قفلت الصفحة)
+            </div>
+          </div>
+        ) : appMode === 'bulk' ? (
+          <div style={{ width: '100%', maxWidth: '1100px', margin: '0 auto', padding: '10px', direction: 'rtl' }}>
+            {/* HIDDEN STAGING ELEMENT FOR HIGH QUALITY CANVAS SNAPSHOTS */}
+            <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: '400px', pointerEvents: 'none', zIndex: -1 }}>
+              <div 
+                id="bulk-stacking-staging" 
+                style={{ 
+                  width: '400px', height: '711px', 
+                  position: 'relative', overflow: 'hidden', 
+                  display: 'flex', flexDirection: 'column', justifyContent: 'center', 
+                  padding: '80px 65px 130px 70px', gap: '10px', direction: 'rtl' 
+                }}
+              >
+                {bulkActiveItem && (
+                  <>
+                    {/* Hook Step */}
+                    {bulkActiveStackStep === -1 && (
+                      <div style={{ 
+                        position: 'absolute',
+                        top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                        width: 'fit-content', maxWidth: '85%',
+                        background: 'rgba(0, 0, 0, 0.75)',
+                        padding: '14px 16px', borderRadius: '12px', 
+                        color: '#ffffff', fontSize: '17px', fontWeight: '900', 
+                        lineHeight: '1.5', textAlign: 'center',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                        zIndex: 10
+                      }}>
+                        {bulkActiveItem.hook}
+                      </div>
+                    )}
+
+                    {/* Stacking Tips Step */}
+                    {bulkActiveStackStep >= 0 && bulkActiveItem.tips.map((tip, i) => {
+                      const formatTip = (text) => {
+                        const formatted = text.replace(/(\d+|مرفوض|السر|أخطاء|هام|مستحيل|سر|فوراً|ينرفضون|تخلي)/g, "<span style='color: #10b981; font-weight: 900;'>$1</span>");
+                        return { __html: formatted };
+                      };
+                      return bulkActiveStackStep >= i && (
+                        <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', flexDirection: 'row', marginBottom: '4px' }}>
+                          <div style={{ 
+                            minWidth: '32px', height: '32px', borderRadius: '50%', 
+                            background: '#10b981', color: 'white', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            fontSize: '16px', fontWeight: '900', flexShrink: 0,
+                            boxShadow: '0 3px 8px rgba(0,0,0,0.5)'
+                          }}>
+                            {i + 1}
+                          </div>
+                          <div style={{ 
+                            background: 'rgba(0, 0, 0, 0.75)', 
+                            padding: '10px 14px', borderRadius: '16px', 
+                            color: '#ffffff', fontSize: '13px', fontWeight: '700', 
+                            lineHeight: '1.6', textAlign: 'right', flex: '0 1 auto', width: 'fit-content',
+                            textShadow: '0 1px 3px rgba(0,0,0,0.5)'
+                          }} dangerouslySetInnerHTML={formatTip(tip)} />
+                        </div>
+                      );
+                    })}
+
+                    {/* CTA Step */}
+                    {bulkActiveStackStep >= bulkActiveItem.tips.length && (
+                      <div style={{ 
+                        background: 'rgba(0, 0, 0, 0.75)', border: '2px solid rgba(16,185,129,0.8)', 
+                        padding: '12px 16px', borderRadius: '12px', 
+                        color: 'white', fontSize: '13px', fontWeight: '800', 
+                        textAlign: 'center', marginTop: '6px',
+                        boxShadow: '0 4px 15px rgba(16,185,129,0.4)',
+                        alignSelf: 'center', width: 'fit-content', maxWidth: '100%'
+                      }}>
+                        {bulkActiveItem.cta}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* HEADER BAR */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+              <div>
+                <h2 style={{ color: 'white', fontSize: '24px', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span>⚡ قائمة ريلز النصائح المتراكمة (Bulk Stacking Reels)</span>
+                  <span style={{ fontSize: '14px', background: 'rgba(236, 72, 153, 0.2)', color: '#f472b6', padding: '4px 12px', borderRadius: '15px', fontWeight: 'bold' }}>
+                    {bulkItems.length} ريلز متراكم
+                  </span>
+                </h2>
+                <p style={{ color: '#94a3b8', fontSize: '13px', margin: '5px 0 0 0' }}>
+                  كل فيديو يتكون من: <strong>خطاف خاطف</strong> ← <strong>نصائح متراكمة رقمياً (1، 2، 3..)</strong> ← <strong>خاتمة دعوة للتفاعل</strong>.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={() => setBulkItems([...bulkItems, { 
+                    id: `item_${Date.now()}`, 
+                    title: `ريلز متراكم ${bulkItems.length + 1}`, 
+                    hook: 'سؤال أو خطاف يثير الفضول؟', 
+                    tips: ['نصيحة أولى سريعة', 'نصيحة ثانية عملية', 'نصيحة ثالثة حصرية'], 
+                    cta: 'اطلب سيرتك الذاتية من الرابط بالبايو 💼', 
+                    broll: activeBroll || (brollList[0]?.file || ''), 
+                    brollName: 'مقطع اختياري', 
+                    status: 'pending', 
+                    blobUrl: null 
+                  }])}
+                  style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <span>➕</span> إضافة ريلز فارغ
+                </button>
+                {bulkItems.length > 0 && !isBulkRendering && (
+                  <button 
+                    onClick={() => { if(confirm('هل أنت متأكد من مسح كافة الفيديوهات؟')) setBulkItems([]); }}
+                    style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    مسح الكل 🗑️
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* LIVE RENDERING MONITOR FOR STACKING REELS */}
+            {isBulkRendering && bulkActiveItem && (
+              <div style={{ background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1))', border: '2px solid #ec4899', borderRadius: '18px', padding: '20px', marginBottom: '25px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', boxShadow: '0 10px 30px rgba(236, 72, 153, 0.2)' }}>
+                <div style={{ width: '180px', height: '320px', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative', flexShrink: 0, boxShadow: '0 8px 25px rgba(0,0,0,0.5)' }}>
+                  <video src={bulkActiveItem.broll} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '15px', gap: '6px', direction: 'rtl' }}>
+                    {bulkActiveStackStep === -1 ? (
+                      <div style={{ background: 'rgba(0,0,0,0.8)', padding: '6px 8px', borderRadius: '6px', fontSize: '9px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
+                        {bulkActiveItem.hook}
+                      </div>
+                    ) : (
+                      <>
+                        {bulkActiveItem.tips.map((tip, i) => (
+                          bulkActiveStackStep >= i && (
+                            <div key={i} style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#10b981', color: 'white', fontSize: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {i + 1}
+                              </div>
+                              <div style={{ background: 'rgba(0,0,0,0.7)', padding: '3px 6px', borderRadius: '6px', fontSize: '8px', color: 'white' }}>
+                                {tip}
+                              </div>
+                            </div>
+                          )
+                        ))}
+                        {bulkActiveStackStep >= bulkActiveItem.tips.length && (
+                          <div style={{ background: 'rgba(0,0,0,0.8)', border: '1px solid #10b981', padding: '4px', borderRadius: '6px', fontSize: '8px', color: 'white', textAlign: 'center', marginTop: '4px' }}>
+                            {bulkActiveItem.cta}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: '#ec4899', color: 'white', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold' }}>
+                    REC 🔴
+                  </div>
+                </div>
+                <div style={{ flex: 1, minWidth: '250px' }}>
+                  <div style={{ display: 'inline-block', background: '#ec4899', color: 'white', padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', marginBottom: '8px' }}>
+                    🎬 جاري تصوير وتراكم: {bulkActiveStackStep === -1 ? 'الخطاف (Hook)' : (bulkActiveStackStep < bulkActiveItem.tips.length ? `نصيحة رقم ${bulkActiveStackStep + 1}` : 'الخاتمة (CTA)')}
+                  </div>
+                  <h3 style={{ color: 'white', fontSize: '18px', margin: '0 0 10px 0' }}>
+                    {bulkActiveItem.title}
+                  </h3>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', color: '#cbd5e1', fontSize: '12px', lineHeight: '1.6' }}>
+                    <div><strong>الخطاف:</strong> {bulkActiveItem.hook}</div>
+                    <div style={{ marginTop: '5px' }}><strong>النصائح ({bulkActiveItem.tips.length}):</strong> {bulkActiveItem.tips.join(' | ')}</div>
+                    <div style={{ marginTop: '5px' }}><strong>الخاتمة:</strong> {bulkActiveItem.cta}</div>
+                  </div>
+                  <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '10px' }}>
+                    خلفية B-Roll: <strong style={{ color: '#f472b6' }}>{bulkActiveItem.brollName}</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* EMPTY STATE */}
+            {bulkItems.length === 0 && !loading && (
+              <div style={{ textAlign: 'center', padding: '60px 20px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                <div style={{ fontSize: '54px', marginBottom: '15px' }}>🎬</div>
+                <h3 style={{ color: 'white', fontSize: '20px', marginBottom: '8px' }}>دفعة ريلز النصائح المتراكمة فارغة</h3>
+                <p style={{ color: '#94a3b8', fontSize: '14px', maxWidth: '500px', margin: '0 auto 20px auto' }}>
+                  اضغط "توليد بالذكاء الاصطناعي" لتأليف 10 إلى 20 سكربت متراكم كامل مع هوك ونصائح مرقمة وخاتمة جاهزة للريندر والتصدير فوراً!
+                </p>
+                <button 
+                  onClick={() => generateBulkWithAI(10)}
+                  style={{ background: 'linear-gradient(135deg, #ec4899, #8b5cf6)', border: 'none', color: 'white', padding: '12px 24px', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(236, 72, 153, 0.4)' }}
+                >
+                  ✨ توليد 10 ريلز متراكمة الآن
+                </button>
+              </div>
+            )}
+
+            {/* STACKING ITEMS GRID */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+              {bulkItems.map((item, idx) => {
+                const isRendering = item.status === 'rendering';
+                const isDone = item.status === 'done';
+                const isError = item.status === 'error';
+
+                return (
+                  <div 
+                    key={item.id || idx}
+                    style={{
+                      background: isRendering ? 'rgba(236, 72, 153, 0.08)' : (isDone ? 'rgba(16, 185, 129, 0.05)' : 'rgba(15, 23, 42, 0.6)'),
+                      border: isRendering ? '2px solid #ec4899' : (isDone ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)'),
+                      borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.3s ease',
+                      boxShadow: isRendering ? '0 0 20px rgba(236, 72, 153, 0.3)' : '0 4px 12px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    {/* Card Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ background: '#334155', color: '#f8fafc', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>
+                          #{idx + 1}
+                        </span>
+                        <input 
+                          type="text" 
+                          value={item.title} 
+                          onChange={e => updateBulkItem(idx, 'title', e.target.value)}
+                          style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 'bold', fontSize: '13px', width: '150px', outline: 'none' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{
+                          fontSize: '11px', padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold',
+                          background: isDone ? 'rgba(16, 185, 129, 0.2)' : (isRendering ? 'rgba(236, 72, 153, 0.25)' : (isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)')),
+                          color: isDone ? '#10b981' : (isRendering ? '#f472b6' : (isError ? '#ef4444' : '#94a3b8'))
+                        }}>
+                          {isDone ? '✅ تم التصدير' : (isRendering ? '⚙️ ريندر...' : (isError ? '❌ فشل' : '⏳ بالانتظار'))}
+                        </span>
+                        {!isBulkRendering && (
+                          <button 
+                            onClick={() => removeBulkItem(idx)}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}
+                            title="حذف هذا الريلز"
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hook Input */}
+                    <div style={{ background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <label style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>
+                        🎯 الخطاف (يظهر أولاً بالمنتصف):
+                      </label>
+                      <input 
+                        type="text"
+                        value={item.hook || ''}
+                        onChange={e => updateBulkItem(idx, 'hook', e.target.value)}
+                        disabled={isBulkRendering}
+                        style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: 'white', padding: '6px 8px', fontSize: '12px', outline: 'none' }}
+                      />
+                    </div>
+
+                    {/* Stacking Tips Inputs */}
+                    <div style={{ background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold' }}>
+                          🔢 النصائح المتراكمة ({item.tips?.length || 0}):
+                        </label>
+                        {!isBulkRendering && item.tips?.length < 5 && (
+                          <button 
+                            onClick={() => addBulkItemTip(idx)}
+                            style={{ background: 'none', border: 'none', color: '#10b981', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                          >
+                            + إضافة
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        {item.tips?.map((tip, tIdx) => (
+                          <div key={tIdx} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#10b981', color: 'white', fontSize: '10px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {tIdx + 1}
+                            </span>
+                            <input 
+                              type="text"
+                              value={tip}
+                              onChange={e => updateBulkItemTip(idx, tIdx, e.target.value)}
+                              disabled={isBulkRendering}
+                              style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', color: 'white', padding: '4px 8px', fontSize: '11px', outline: 'none' }}
+                            />
+                            {!isBulkRendering && item.tips.length > 2 && (
+                              <button 
+                                onClick={() => removeBulkItemTip(idx, tIdx)}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '12px', cursor: 'pointer', padding: '0 2px' }}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* CTA Input */}
+                    <div style={{ background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <label style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>
+                        📢 الخاتمة (CTA):
+                      </label>
+                      <input 
+                        type="text"
+                        value={item.cta || ''}
+                        onChange={e => updateBulkItem(idx, 'cta', e.target.value)}
+                        disabled={isBulkRendering}
+                        style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: 'white', padding: '6px 8px', fontSize: '12px', outline: 'none' }}
+                      />
+                    </div>
+
+                    {/* B-Roll Selector */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', whiteSpace: 'nowrap' }}>🎬 خلفية B-Roll:</span>
+                      <select 
+                        value={item.broll}
+                        onChange={e => {
+                          const found = brollList.find(b => b.file === e.target.value);
+                          updateBulkItem(idx, 'broll', e.target.value);
+                          if (found) updateBulkItem(idx, 'brollName', found.name || 'مقطع');
+                        }}
+                        disabled={isBulkRendering}
+                        style={{ flex: 1, background: '#1e293b', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', padding: '4px 8px', fontSize: '11px', outline: 'none' }}
+                      >
+                        {brollList.map((b, bIdx) => (
+                          <option key={bIdx} value={b.file}>
+                            {b.name} ({b.size || ''})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Download / Actions if Done */}
+                    {isDone && item.blobUrl && (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                        <a 
+                          href={item.blobUrl} 
+                          download={item.filename || `Stacking_Reel_${idx + 1}.mp4`}
+                          style={{ flex: 1, textAlign: 'center', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid #10b981', color: '#10b981', padding: '7px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', textDecoration: 'none' }}
+                        >
+                          ⬇️ تنزيل الفيديو
+                        </a>
+                        <a 
+                          href={item.blobUrl} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', fontSize: '12px', textDecoration: 'none' }}
+                        >
+                          ▶️ تشغيل
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : null}
