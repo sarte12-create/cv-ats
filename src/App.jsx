@@ -168,7 +168,7 @@ export default function App() {
   const [viralStatus, setViralStatus] = useState("");
   const [premiumTweet, setPremiumTweet] = useState(null);
   const [premiumTemplate, setPremiumTemplate] = useState('tweet');
-  const [activeBroll, setActiveBroll] = useState('');
+  const [activeBroll, setActiveBroll] = useState('/broll/1.mp4');
   const [brollList, setBrollList] = useState([]);
   const premiumVideoRef = useRef(null);
   const audioRef = useRef(null);
@@ -672,7 +672,8 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
       selectedVideos = CONTENT_PLAN[dayIndex]?.videos || [];
     }
 
-    const availableBrolls = brollList.length > 0 ? brollList : [{ file: activeBroll, name: 'فيديو افتراضي' }];
+    const defaultBrollPath = activeBroll || (brollList.length > 0 ? brollList[0].file : '/broll/1.mp4');
+    const availableBrolls = brollList.length > 0 ? brollList : [{ file: defaultBrollPath, name: 'فيديو افتراضي' }];
     const newItems = selectedVideos.map((v, idx) => {
       let matchedBroll = null;
       for (const b of availableBrolls) {
@@ -698,8 +699,8 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
         hook: hook,
         tips: tips.slice(0, 4),
         cta: cta,
-        broll: assigned.file,
-        brollName: assigned.name || `مقطع ${idx + 1}`,
+        broll: assigned?.file || defaultBrollPath,
+        brollName: assigned?.name || `مقطع ${idx + 1}`,
         audioTrack: bulkAudioSetting,
         status: 'pending',
         blobUrl: null,
@@ -841,7 +842,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
           if (bulkCancelRef.current) break;
           setBulkActiveStackStep(steps[s]);
           await new Promise(r => setTimeout(r, 140)); // wait for DOM to update
-          const snapshotCanvas = await htmlToImage.toCanvas(stagingEl, { backgroundColor: 'transparent', pixelRatio: 2.7 });
+          const snapshotCanvas = await htmlToImage.toCanvas(stagingEl, { backgroundColor: 'transparent', pixelRatio: 2.7, skipFonts: true });
           frames.push(snapshotCanvas);
         }
 
@@ -857,6 +858,8 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
           itemAudio = SHUFFLE_AUDIO_TRACKS[i % SHUFFLE_AUDIO_TRACKS.length];
         }
 
+        const safeBroll = currentItem.broll || activeBroll || '/broll/1.mp4';
+
         // Tier 1: Hardware-accelerated local server engine (Broadcast 60 FPS, 0% CPU stutter, 100% smooth)
         try {
           const base64Frames = frames.map(f => f.toDataURL('image/png'));
@@ -864,7 +867,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              broll: currentItem.broll,
+              broll: safeBroll,
               durations: durations,
               frames: base64Frames,
               title: filename,
@@ -886,7 +889,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
           // Pre-buffer entire B-roll video into local RAM memory to completely eliminate HTTP network buffering stalls
           let videoBlobUrl = null;
           try {
-            const resp = await fetch(currentItem.broll);
+            const resp = await fetch(safeBroll);
             if (resp.ok) {
               const b = await resp.blob();
               videoBlobUrl = URL.createObjectURL(b);
@@ -897,7 +900,7 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
 
           // Attach background B-roll video directly in visible viewport to prevent Chromium from throttling decoder FPS
           video = document.createElement('video');
-          video.src = videoBlobUrl || currentItem.broll;
+          video.src = videoBlobUrl || safeBroll;
           video.crossOrigin = "anonymous";
           video.muted = true;
           video.playsInline = true;
@@ -986,6 +989,14 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
                 ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 4000000 }
                 : { mimeType: 'video/webm' });
 
+          const totalDuration = durations.reduce((a, b) => a + b, 0);
+          const stepThresholds = [];
+          let accum = 0;
+          for (let d of durations) {
+            accum += d;
+            stepThresholds.push(accum);
+          }
+
           const stream = canvas.captureStream(30);
 
           // Attach background audio track to canvas stream
@@ -1007,14 +1018,6 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
           });
 
           recorder.start();
-
-          const totalDuration = durations.reduce((a, b) => a + b, 0);
-          const stepThresholds = [];
-          let accum = 0;
-          for (let d of durations) {
-            accum += d;
-            stepThresholds.push(accum);
-          }
 
           const renderStartTime = performance.now();
           let isRecordingActive = true;
@@ -1452,7 +1455,7 @@ ${currentAdvice}
       for (let s = 0; s < steps.length; s++) {
         setCurrentLine(steps[s]); // update UI
         await new Promise(r => setTimeout(r, 150)); // wait for React render
-        const canvasSnapshot = await htmlToImage.toCanvas(overlayEl, { backgroundColor: 'transparent', pixelRatio: 2.7 });
+        const canvasSnapshot = await htmlToImage.toCanvas(overlayEl, { backgroundColor: 'transparent', pixelRatio: 2.7, skipFonts: true });
         frames.push(canvasSnapshot);
       }
       
@@ -1473,7 +1476,7 @@ ${currentAdvice}
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            broll: activeBroll || '/broll/8.mp4',
+            broll: activeBroll || '/broll/1.mp4',
             durations: durations,
             frames: base64Frames,
             title: `seartk_reel_${Date.now()}`,
@@ -1516,6 +1519,15 @@ ${currentAdvice}
       // Draw initial frame before starting stream recording
       drawFrame(0);
 
+      // Cumulative step transition thresholds
+      const totalDuration = durations.reduce((a, b) => a + b, 0);
+      const stepThresholds = [];
+      let accum = 0;
+      for (let d of durations) {
+        accum += d;
+        stepThresholds.push(accum);
+      }
+
       // Record
       const stream = vc.captureStream(30);
 
@@ -1542,15 +1554,6 @@ ${currentAdvice}
         a.click(); incrementProduction(); setLoading(false); setLoadingMsg('');
       };
       rec.start();
-
-      // Cumulative step transition thresholds
-      const totalDuration = durations.reduce((a, b) => a + b, 0);
-      const stepThresholds = [];
-      let accum = 0;
-      for (let d of durations) {
-        accum += d;
-        stepThresholds.push(accum);
-      }
 
       setLoadingMsg("جاري تصدير الفيديو النهائي بسلاسة تامة... ⏳");
       const recStartTime = performance.now();
@@ -3307,6 +3310,12 @@ ${currentAdvice}
                         )}
                       </div>
                     </div>
+
+                    {isError && item.errorMsg && (
+                      <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', padding: '6px 10px', fontSize: '11px', color: '#fca5a5' }}>
+                        ⚠️ سبب الفشل: {item.errorMsg}
+                      </div>
+                    )}
 
                     {/* Hook Input */}
                     <div style={{ background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
