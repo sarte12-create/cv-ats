@@ -68,6 +68,62 @@ export const SHUFFLE_AUDIO_TRACKS = [
   '/audio/track_4_sanctuary_strings.mp3'
 ];
 
+export async function attachAudioTrackToStream(stream, audioUrl, totalDurationSec) {
+  if (!audioUrl || audioUrl === 'none') return null;
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    const audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
+    const audioEl = new Audio(audioUrl);
+    audioEl.crossOrigin = 'anonymous';
+    audioEl.loop = true;
+
+    await new Promise((resolve) => {
+      audioEl.oncanplaythrough = () => resolve();
+      audioEl.onerror = () => resolve();
+      setTimeout(resolve, 800);
+      audioEl.load();
+    });
+
+    const source = audioCtx.createMediaElementSource(audioEl);
+    const gainNode = audioCtx.createGain();
+
+    const targetVol = 0.38;
+    const now = audioCtx.currentTime;
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(targetVol, now + 0.5);
+    if (totalDurationSec > 2) {
+      const fadeOutStart = Math.max(0.5, totalDurationSec - 1.2);
+      gainNode.gain.setValueAtTime(targetVol, now + fadeOutStart);
+      gainNode.gain.linearRampToValueAtTime(0, now + totalDurationSec);
+    }
+
+    const dest = audioCtx.createMediaStreamDestination();
+    source.connect(gainNode);
+    gainNode.connect(dest);
+
+    const audioTrack = dest.stream.getAudioTracks()[0];
+    if (audioTrack) {
+      stream.addTrack(audioTrack);
+    }
+
+    await audioEl.play().catch(e => console.warn("Audio element play warning:", e));
+
+    return {
+      stop: () => {
+        try { audioEl.pause(); } catch(e) {}
+        try { audioCtx.close(); } catch(e) {}
+      }
+    };
+  } catch (err) {
+    console.warn("Could not attach audio track to stream:", err);
+    return null;
+  }
+}
+
 export default function App() {
   const [bulkAudioSetting, setBulkAudioSetting] = useState('random');
   const [activeAudioTrack, setActiveAudioTrack] = useState('random');
@@ -578,12 +634,23 @@ ${categoriesList}
         
         // 4. Start MediaRecorder
         const stream = canvas.captureStream(30);
+
+        let audioController = null;
+        let activeAudio = activeAudioTrack;
+        if (activeAudio === 'random') {
+          activeAudio = SHUFFLE_AUDIO_TRACKS[Math.floor(Math.random() * SHUFFLE_AUDIO_TRACKS.length)];
+        }
+        if (activeAudio && activeAudio !== 'none') {
+          audioController = await attachAudioTrackToStream(stream, activeAudio, 7);
+        }
+
         const options = MediaRecorder.isTypeSupported('video/mp4') ? { mimeType: 'video/mp4' } : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? { mimeType: 'video/webm;codecs=vp9' } : { mimeType: 'video/webm' });
         const recorder = new MediaRecorder(stream, options);
         const chunks = [];
         recorder.ondataavailable = e => chunks.push(e.data);
         
         recorder.onstop = () => {
+            if (audioController) audioController.stop();
             const blob = new Blob(chunks, { type: options.mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -947,14 +1014,10 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
           if (resp.ok) {
             videoBlob = await resp.blob();
           } else {
-            const errData = await resp.json().catch(() => ({ error: 'فشل معالجة الفيديو في السيرفر' }));
-            throw new Error(`خطأ في معالجة الفيديو (${resp.status}): ${errData.error || 'خطأ غير معروف'}`);
+            console.warn(`Local server render returned status ${resp.status}, switching to browser recorder`);
           }
         } catch (serverErr) {
-          console.error("Local server render failed:", serverErr);
-          if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
-            throw serverErr;
-          }
+          console.warn("Local server render failed, switching to browser canvas recorder:", serverErr);
         }
 
         // Tier 2: In-browser canvas recorder (Fallback for static clouds like Vercel)
@@ -1063,12 +1126,20 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
                 : { mimeType: 'video/webm' });
 
           const stream = canvas.captureStream(30);
+
+          // Attach background audio track to canvas stream
+          let audioController = null;
+          if (itemAudio && itemAudio !== 'none') {
+            audioController = await attachAudioTrackToStream(stream, itemAudio, totalDuration / 1000);
+          }
+
           const recorder = new MediaRecorder(stream, recorderOptions);
           const chunks = [];
           recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
 
           const recordingDone = new Promise((resolve) => {
             recorder.onstop = () => {
+              if (audioController) audioController.stop();
               const blob = new Blob(chunks, { type: recorderOptions.mimeType });
               resolve(blob);
             };
@@ -1559,16 +1630,10 @@ ${currentAdvice}
           setLoadingMsg('');
           return;
         } else {
-          const errData = await resp.json().catch(() => ({ error: 'فشل معالجة الفيديو في السيرفر' }));
-          throw new Error(`خطأ في معالجة الفيديو (${resp.status}): ${errData.error || 'خطأ غير معروف'}`);
+          console.warn(`Server render returned status ${resp.status}, switching to browser recorder`);
         }
       } catch (serverErr) {
-        console.error("Local server render failed:", serverErr);
-        if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
-          alert("تعذر إنتاج الفيديو عبر محرك السيرفر: " + serverErr.message);
-          setLoading(false);
-          return;
-        }
+        console.warn("Local server render failed, switching to browser canvas recorder:", serverErr);
       }
 
       // Draw a single frame (100% opaque, ultra fast direct GPU blit)
@@ -1592,6 +1657,13 @@ ${currentAdvice}
 
       // Record
       const stream = vc.captureStream(30);
+
+      // Attach background audio track to canvas stream
+      let audioController = null;
+      if (singleAudio && singleAudio !== 'none') {
+        audioController = await attachAudioTrackToStream(stream, singleAudio, totalDuration / 1000);
+      }
+
       const mimeOpts = MediaRecorder.isTypeSupported('video/mp4') 
         ? { mimeType: 'video/mp4', videoBitsPerSecond: 4000000 } 
         : (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
@@ -1602,6 +1674,7 @@ ${currentAdvice}
       const chunks = [];
       rec.ondataavailable = e => chunks.push(e.data);
       rec.onstop = () => {
+        if (audioController) audioController.stop();
         const blob = new Blob(chunks, {type: mimeOpts.mimeType});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
         a.download = `seartk_reel_${Date.now()}.${mimeOpts.mimeType.includes('mp4')?'mp4':'webm'}`;
