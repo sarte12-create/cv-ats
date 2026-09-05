@@ -292,16 +292,23 @@ export default function App() {
       .catch(() => setBrollList([]));
   }, []);
 
-  // التعرف التلقائي على اسم أو رقم الفيديو المكتوب في النص
+  // التعرف التلقائي على اسم أو رقم الفيديو المكتوب في النص بدقة تامة
   useEffect(() => {
     const textToSearch = `${premiumTopic || ''} ${videoTopic || ''} ${videoScript ? JSON.stringify(videoScript) : ''}`;
     if (!textToSearch.trim() || !brollList.length) return;
+    
+    const brollNumMatch = textToSearch.match(/\[?مقطع[- ](\d+)\]?/);
+    if (brollNumMatch) {
+      const targetNum = brollNumMatch[1];
+      const found = brollList.find(b => String(b.num) === targetNum || b.id === `مقطع-${targetNum}`);
+      if (found) {
+        setActiveBroll(found.file);
+        return;
+      }
+    }
+
     for (const b of brollList) {
-      if (
-        (b.id && textToSearch.includes(b.id)) ||
-        (b.num && (textToSearch.includes(`مقطع-${b.num}`) || textToSearch.includes(`مقطع ${b.num}`) || textToSearch.includes(`[مقطع-${b.num}]`))) ||
-        (b.title && textToSearch.includes(b.title))
-      ) {
+      if (b.title && textToSearch.includes(b.title)) {
         setActiveBroll(b.file);
         break;
       }
@@ -675,12 +682,11 @@ ${bulkCustomTopic ? `\nالموضوع المطلوب من المستخدم: "${b
     const defaultBrollPath = activeBroll || (brollList.length > 0 ? brollList[0].file : '/broll/1.mp4');
     const availableBrolls = brollList.length > 0 ? brollList : [{ file: defaultBrollPath, name: 'فيديو افتراضي' }];
     const newItems = selectedVideos.map((v, idx) => {
+      const brollTagMatch = v.content.match(/\[?مقطع[- ](\d+)\]?/);
+      const targetNum = brollTagMatch ? brollTagMatch[1] : null;
       let matchedBroll = null;
-      for (const b of availableBrolls) {
-        if (b.num && v.content.includes(`مقطع-${b.num}`)) {
-          matchedBroll = b;
-          break;
-        }
+      if (targetNum) {
+        matchedBroll = availableBrolls.find(b => String(b.num) === targetNum || b.id === `مقطع-${targetNum}`);
       }
       const assigned = matchedBroll || availableBrolls[idx % availableBrolls.length];
       
